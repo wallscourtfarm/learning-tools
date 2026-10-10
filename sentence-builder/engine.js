@@ -10,8 +10,18 @@ const JOINS = {
   so:      {t:'so',      kind:'coord',  help:'what happens because of the first idea'},
   because: {t:'because', kind:'subord', help:'gives the reason'},
   when:    {t:'when',    kind:'subord', help:'tells you the time it happens'},
-  if:      {t:'if',      kind:'subord', help:'it only happens if…'}
+  if:      {t:'if',      kind:'subord', help:'it only happens if…'},
+  or:      {t:'or',      kind:'coord',  help:'another choice'},
+  while:   {t:'while',   kind:'subord', help:'both happen at the same time'},
+  although:{t:'although',kind:'subord', help:'one is surprising, given the other'},
+  after:   {t:'after',   kind:'subord', help:'this happens first, then the other'},
+  before:  {t:'before',  kind:'subord', help:'the other happens first'},
+  until:   {t:'until',   kind:'subord', help:'keeps going up to that moment'},
+  as:      {t:'as',      kind:'subord', help:'at the same moment'}
 };
+// joining words in the order children meet them
+const COORD_JOINS = ['and','but','so','or'];
+const SUBORD_JOINS = ['because','when','while','if','although','after','before','until'];
 
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cap = t => t ? t[0].toUpperCase() + t.slice(1) : t;

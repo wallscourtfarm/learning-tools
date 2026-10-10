@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26h';
+const VERSION = '10.10.26i';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -29,9 +29,9 @@ const STEPS = {
      mini:[['who','The astronaut'],['doing','floats'],['where','in the space station']]},
   3:{title:'Step 3', sub:'Add extras (but not too many!)', extras:true,
      mini:[['lit','The'],['describe','happy'],['who','astronaut'],['doing','floats'],['how','slowly']]},
-  4:{title:'Step 4', sub:'Join two ideas: and, but, so', joins:['stop','and','but','so'],
+  4:{title:'Step 4', sub:'Join two ideas: and, but, so, or', joins:['stop', ...COORD_JOINS],
      mini:[['who','The rocket'],['doing','blasts off'],['coord','so'],['who','the crowd'],['doing','cheers']]},
-  5:{title:'Step 5', sub:'Join two ideas: because, when, if', joins:['because','when','if'],
+  5:{title:'Step 5', sub:'Join two ideas: because, when, while, if…', joins:SUBORD_JOINS,
      mini:[['who','The crowd'],['doing','cheers'],['subord','because'],['who','the rocket'],['doing','blasts off']]},
   6:{title:'Step 6', sub:'Fronted adverbial + comma', front:true,
      mini:[['when','After lunch'],['lit',','],['who','the astronaut'],['doing','eats'],['what','an apple']]},
@@ -104,7 +104,8 @@ function buildTokens(opts = {}){
       const [open, close] = s.relPunct === 'brackets' ? ['(', ')'] : s.relPunct === 'commas' ? [',', ','] : [null, null];
       if (open) ins.push({kind:'punct', t:open, extra:true});
       if (r.pron) ins.push({kind:'relw', t:r.pron, extra:true});
-      if (r.doing) ins.push({kind:'doing', card:r.doing, t:r.doing.t, rel:true, extra:true});
+      if (r.doing && r.aux) ins.push({kind:'aux', t:r.aux, rel:true, extra:true});
+      if (r.doing) ins.push({kind:'doing', card:r.doing, t:doingWith(r.doing.t, r.aux), rel:true, extra:true});
       if (r.what) ins.push({kind:'what', card:r.what, t:r.what.t, rel:true, extra:true});
       if (r.where) ins.push({kind:'where', card:r.where, t:r.where.t, rel:true, extra:true});
       if (close) ins.push({kind:'punct', t:close, extra:true});
@@ -352,6 +353,7 @@ function chooseRel(key, val){
       render(); return;
     }
   }
+  if (key === 'aux'){ s.rel.aux = s.rel.aux === val ? null : val; changed(); render(); return; }
   if (key === 'punct'){ s.relPunct = val; if (isFree()){ changed(); fr.phase = 'menu'; fr.needJudge = true; render(); return; } phase = 'ready'; changed(); render(); return; }
   if (s.rel[key] && s.rel[key].id && val.id === s.rel[key].id) s.rel[key] = null; else s.rel[key] = val;
   if (key === 'doing'){ s.rel.what = null; s.rel.where = null; }
@@ -653,13 +655,25 @@ function wordCard(cat, card, chosen, fn){
 }
 function plainCard(cls, html, fn){ const b = el('button', 'card ' + cls, html); b.onclick = fn; return b; }
 
+// Optional being/having diamonds for a doing word: is / was / has / had / will.
+function auxGroup(b, doing, cur, pick){
+  cardGroup(b, icon('aux'), 'Being / having word? (you can skip this)', AUX_WORDS.map(a =>
+    plainCard('aux-card' + (cur === a ? ' chosen' : ''), `<span class="dia">${a}</span><small>${esc(doingWith(doing.t, a))}</small>`, () => {
+      if (settings.readCards && canSpeak()) say(a + ' ' + doingWith(doing.t, a));
+      pick(a);
+    })));
+}
+// Joining-word cards, in two groups: and/but/so/or, then because/when/while…
+function joinCards(b, ids, chosen, pick, q){
+  const card = id => { const j = JOINS[id]; return plainCard(`join-card j-${j.kind}` + (chosen === id ? ' chosen' : ''),
+    `<span class="jw">${id === 'stop' ? '⏺ Full stop' : esc(j.t)}</span><small>${esc(j.help)}</small>`, () => pick(id)); };
+  const co = ids.filter(id => id === 'stop' || JOINS[id].kind === 'coord'), sub = ids.filter(id => JOINS[id].kind === 'subord');
+  if (co.length) cardGroup(b, icon('coord'), q, co.map(card));
+  if (sub.length) cardGroup(b, icon('subord'), co.length ? 'Or join it with…' : q, sub.map(card));
+}
+
 function joinBank(b){
-  cardGroup(b, icon(STEPS[step].joins[0] === 'because' ? 'subord' : 'coord'), 'How does the second idea join on?',
-    STEPS[step].joins.map(id => {
-      const j = JOINS[id];
-      return plainCard(`join-card j-${j.kind}` + (join === id ? ' chosen' : ''),
-        `<span class="jw">${id === 'stop' ? '⏺ Full stop' : esc(j.t)}</span><small>${esc(j.help)}</small>`, () => chooseJoin(id));
-    }));
+  joinCards(b, STEPS[step].joins, join, chooseJoin, 'How does the second idea join on?');
 }
 
 function frontBank(b){
@@ -688,6 +702,7 @@ function relBank(b){
     cardGroup(b, icon('doing'), `What else is ${esc(np(s.who))} doing?`, list.map(card => wordCard('doing', card, false, () => chooseRel('doing', card))));
     return;
   }
+  auxGroup(b, r.doing, r.aux, a => chooseRel('aux', a));
   if (r.doing.needs !== 'none'){
     const whats = pic.what.filter(w => fits(w, 'doing', r.doing) && fits(w, 'who', s.who));
     if (whats.length) cardGroup(b, icon('what'), r.doing.needs === 'what' ? `${esc(r.doing.t)}… what?` : 'What? (you can skip this)',
@@ -740,13 +755,7 @@ function renderBank(){
     if (q) q.appendChild(el('span', 'count', `Extras: ${extrasCount()} of ${settings.extras}`));
   }
   if (building() && s.doing && !editing && (step !== 1)){
-    const g = cardGroup(b, icon('aux'), 'Being / having word? (you can skip this)', AUX_WORDS.map(a => {
-      const c = plainCard('aux-card' + (s.aux === a ? ' chosen' : ''), `<span class="dia">${a}</span><small>${esc(doingWith(s.doing.t, a))}</small>`, () => {
-        if (settings.readCards && canSpeak()) say(a + ' ' + doingWith(s.doing.t, a));
-        s.aux = s.aux === a ? null : a; changed(); render();
-      });
-      return c;
-    }));
+    auxGroup(b, s.doing, s.aux, a => { s.aux = s.aux === a ? null : a; changed(); render(); });
   }
   if (building() && needsStop() && coreDone() && !s.stop){
     cardGroup(b, icon('fullstop'), 'Finished? Add a full stop.', [
@@ -1083,11 +1092,7 @@ function renderFixBank(){
   const b = $('#bank'); b.innerHTML = '';
   if (fx.stage === 'done') return;
   if ((fx.type === 'runon' || fx.type === 'comma') && fx.stage === 'fix'){
-    cardGroup(b, icon('coord'), 'How will you fix it?', ['stop','and','but','so'].map(id => {
-      const j = JOINS[id];
-      return plainCard(`join-card j-${j.kind}` + (fx.fix === id ? ' chosen' : ''),
-        `<span class="jw">${id === 'stop' ? '⏺ Full stop' : esc(j.t)}</span><small>${esc(j.help)}</small>`, () => chooseFix(id));
-    }));
+    joinCards(b, ['stop', ...COORD_JOINS, ...SUBORD_JOINS], fx.fix, chooseFix, 'How will you fix it?');
   } else if (fx.type === 'extras'){
     const g = el('div', 'bank-group');
     g.appendChild(el('div', 'bank-q', `<span>Tap an extra in the sentence to take it away.</span><span class="count">Extras: ${xCount(fx.clause)} (keep ${settings.extras} or fewer)</span>`));
@@ -1146,7 +1151,8 @@ function freeTokens(st, opts = {}){
     const [o, c] = st.relPunct === 'brackets' ? ['(', ')'] : st.relPunct === 'commas' ? [',', ','] : [null, null];
     if (o) rel.push({kind:'punct', t:o, feat:'rel'});
     if (st.rel.pron) rel.push({kind:'relw', t:st.rel.pron, feat:'rel'});
-    ['doing','what','where'].forEach(k => { if (st.rel[k]) rel.push({kind:k, card:st.rel[k], t:st.rel[k].t, feat:'rel', rel:true}); });
+    if (st.rel.doing && st.rel.aux) rel.push({kind:'aux', t:st.rel.aux, feat:'rel', rel:true});
+    ['doing','what','where'].forEach(k => { if (st.rel[k]) rel.push({kind:k, card:st.rel[k], t: k === 'doing' ? doingWith(st.rel.doing.t, st.rel.aux) : st.rel[k].t, feat:'rel', rel:true}); });
     if (c) rel.push({kind:'punct', t:c, feat:'rel'});
   }
   const unit = k => st[k] ? [{kind:k, card:st[k], t:st[k].t, feat: (k === 'where' && !st.whereAdded) ? null : k}] : [];
@@ -1380,13 +1386,10 @@ function renderFreeBank(){
   }
   if (fr.phase === 'rel') return relBank(b);
   if (fr.phase === 'join'){
-    cardGroup(b, icon('coord'), 'How does the second idea join on?', ['stop','and','but','so','because','when','if'].map(id => {
-      const j = JOINS[id];
-      return plainCard(`join-card j-${j.kind}`, `<span class="jw">${id === 'stop' ? '⏺ Full stop' : esc(j.t)}</span><small>${esc(j.help)}</small>`, () => {
-        if (settings.readCards && canSpeak() && id !== 'stop') say(j.t);
-        s.second = {join:id, c:blank(), draft:true}; fr.phase = 'second'; coachMsg = null; heard = false; render();
-      });
-    }));
+    joinCards(b, ['stop', ...COORD_JOINS, ...SUBORD_JOINS], null, id => {
+      if (settings.readCards && canSpeak() && id !== 'stop') say(JOINS[id].t);
+      s.second = {join:id, c:blank(), draft:true}; fr.phase = 'second'; coachMsg = null; heard = false; render();
+    }, 'How does the second idea join on?');
     return;
   }
   if (fr.phase === 'second'){
@@ -1397,9 +1400,10 @@ function renderFreeBank(){
       cardGroup(b, icon(CAT[cat].icon), cat === 'who' ? 'Who or what is in the second idea?' : esc(CAT[cat].q(c)) + (cat === 'what' || cat === 'where' ? ' (you can skip this)' : ''),
         list.map(card => wordCard(cat, card, c[cat] && c[cat].id === card.id, () => {
           if (settings.readCards && canSpeak()) say(cat === 'who' ? np(card) : card.t);
-          c[cat] = c[cat] && c[cat].id === card.id ? null : card; heard = false; coachMsg = null; render();
+          c[cat] = c[cat] && c[cat].id === card.id ? null : card; if (cat === 'doing') c.aux = null; heard = false; coachMsg = null; render();
         })));
     });
+    if (c.doing) auxGroup(b, c.doing, c.aux, a => { c.aux = c.aux === a ? null : a; heard = false; coachMsg = null; render(); });
     return;
   }
   if (fr.phase === 'move'){
