@@ -271,3 +271,10 @@ button.wr-and{border:2px solid #c0392b;color:#c0392b;font-family:'Andika',sans-s
 .aux-card .dia{background:#fff;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);padding:6px 22px;font-size:1.25rem}
 .aux-card small{font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:800}
 .mini span.c-aux{background:var(--doing);color:#3a2c00}
+
+/* keep the sentence in view while choosing cards further down (tablets / boards) */
+@media (min-width:861px) and (min-height:560px){
+  .line-wrap{position:sticky;top:calc(var(--hdr,96px) + var(--crumbs,48px) + 6px);z-index:10;box-shadow:0 6px 16px rgba(0,0,0,.10)}
+}
+.aux-card.chosen{outline:4px solid var(--ink);outline-offset:2px}
+.aux-card.dim{opacity:.55}

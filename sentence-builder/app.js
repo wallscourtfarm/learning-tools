@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26j';
+const VERSION = '10.10.26k';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -203,7 +203,10 @@ function showBuildScreen(p, tag){
 }
 
 /* ---------- navigation ---------- */
-const fitHeader = () => document.documentElement.style.setProperty('--hdr', $('#top').offsetHeight + 'px');
+const fitHeader = () => {
+  document.documentElement.style.setProperty('--hdr', $('#top').offsetHeight + 'px');
+  document.documentElement.style.setProperty('--crumbs', ($('#crumbs').hidden ? 0 : $('#crumbs').offsetHeight) + 'px');
+};
 window.addEventListener('resize', fitHeader);
 let routing = false;          // true while restoring a screen from the address (Back button)
 function go(url){
@@ -225,6 +228,7 @@ function navTo(key){
 // The bar under the header on every activity screen: where you are, and what you can change.
 function setCrumbs(tag, title){
   $('#crumbs').hidden = false;
+  requestAnimationFrame(fitHeader);
   $('#crumbPath').innerHTML = `<a href="#" data-crumb="home">Home</a><span>›</span>${tag}${title ? `<span>›</span><b>${esc(title)}</b>` : ''}`;
   $('#crumbPath').querySelector('[data-crumb]').onclick = e => { e.preventDefault(); navTo('home'); };
   const acts = $('#crumbActions'); acts.innerHTML = '';
@@ -658,7 +662,7 @@ function plainCard(cls, html, fn){ const b = el('button', 'card ' + cls, html); 
 // Optional being/having diamonds for a doing word: is / was / has / had / will.
 function auxGroup(b, doing, cur, pick){
   cardGroup(b, icon('aux'), 'Being / having word? (you can skip this)', AUX_WORDS.map(a =>
-    plainCard('aux-card' + (cur === a ? ' chosen' : ''), `<span class="dia">${a}</span><small>${esc(doingWith(doing.t, a))}</small>`, () => {
+    plainCard('aux-card' + (cur === a ? ' chosen' : cur ? ' dim' : ''), `<span class="dia">${a}</span><small>${cur === a ? '✓ ' : ''}${esc(doingWith(doing.t, a))}</small>`, () => {
       if (settings.readCards && canSpeak()) say(a + ' ' + doingWith(doing.t, a));
       pick(a);
     })));
@@ -755,7 +759,9 @@ function renderBank(){
     if (q) q.appendChild(el('span', 'count', `Extras: ${extrasCount()} of ${settings.extras}`));
   }
   if (building() && s.doing && !editing && (step !== 1)){
-    auxGroup(b, s.doing, s.aux, a => { s.aux = s.aux === a ? null : a; changed(); render(); });
+    auxGroup(b, s.doing, s.aux, a => { s.aux = s.aux === a ? null : a; changed();
+      coachMsg = {cls:'good', ic:'◆', html: s.aux ? `Now it says <q>${esc(cap(np(s.who)))} <b>${s.aux} ${esc(doingWith(s.doing.t, s.aux))}</b>…</q> Tap it again to take it away.` : `Back to <q>${esc(cap(np(s.who)))} <b>${esc(s.doing.t)}</b>…</q>`};
+      render(); });
   }
   if (building() && needsStop() && coreDone() && !s.stop){
     cardGroup(b, icon('fullstop'), 'Finished? Add a full stop.', [
