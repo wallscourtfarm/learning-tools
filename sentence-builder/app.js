@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26l';
+const VERSION = '10.10.26m';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -82,10 +82,15 @@ const made = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, F:0, fix:0, write:0};   // this
 const $ = q => document.querySelector(q);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const plural = n => n === 1 ? '' : 's';
-const newClause = () => ({...blank(), front:null, frontComma:false, rel:null, relPunct:null});
+const newClause = () => ({...blank(), front:null, frontComma:false, rel:null, relPunct:null, pos:{}});
 
 /* ---------- tokens for the sentence being built ---------- */
 function buildTokens(opts = {}){
+  if (step === 3 && !first && mode === 'build'){
+    const tk = freeTokens(s, {core: opts.core, noStop: true});
+    if (s.stop) tk.push({kind:'stop', t:'.'});
+    return tk;
+  }
   if (s.moved && !opts.core) return [...s.moved, ...(s.stop ? [{kind:'stop', t:'.'}] : [])];
   const tk = [];
   if (first){
@@ -285,7 +290,7 @@ function start(p){
   mode = 'build';
   s = newClause(); first = null; join = null;
   phase = 'core'; heard = false; stripped = false; covered = false; problemSlot = null; coachMsg = null; editing = null;
-  moveOpen = false; moveSel = null;
+  moveOpen = false; moveSel = null; stepMovePart = null; stepMoveSel = null;
   showBuildScreen(p, `<b>${STEPS[step].title}</b><span class="sub">: ${esc(STEPS[step].sub)}</span>`);
   go(`?step=${step}&pic=${topic.id}.${p.id}`);
   if (!isFree()){ settings.lastStep = step; saveSettings(); }
@@ -404,7 +409,7 @@ function tapChip(kind, clause){
     render(); return;
   }
   if (phase === 'done'){ phase = 'extras'; }
-  s[kind] = null;
+  s[kind] = null; if (s.pos) delete s.pos[kind];
   changed(); render();
 }
 
@@ -774,6 +779,7 @@ function renderBank(){
   if (phase === 'extras'){
     const q = b.querySelector('.bank-q');
     if (q) q.appendChild(el('span', 'count', `Extras: ${extrasCount()} of ${settings.extras}`));
+    if (step === 3) stepMoveGroup(b);
   }
   if (building() && s.doing && !editing && (step !== 1)){
     auxGroup(b, s.doing, s.aux, a => { s.aux = s.aux === a ? null : a; changed();
@@ -863,7 +869,44 @@ function stripHtml(tokens){
   }).join('');
 }
 
+// Step 3: choose where a how / when / where part goes, any time while adding extras.
+let stepMovePart = null, stepMoveSel = null;
+function stepMoveGroup(b){
+  const partsList = ['how','when','where'].filter(k => s[k]);
+  if (!partsList.length) return;
+  cardGroup(b, '<span style="font-size:1.3rem">🔀</span>', 'Move it: which part do you want to move?', partsList.map(k =>
+    plainCard(`card c-${k}` + (stepMovePart === k ? ' chosen' : ''), esc(s[k].t), () => { stepMovePart = stepMovePart === k ? null : k; stepMoveSel = null; render(); })));
+  if (!stepMovePart || !s[stepMovePart]) return;
+  const k = stepMovePart;
+  const box = el('div', 'bank-group');
+  box.appendChild(el('div', 'bank-q', `<span>Where can <q>${esc(s[k].t)}</q> go? Tap each one to hear it.</span>`));
+  const curPos = s.pos[k] || (k === 'how' ? 'mid' : 'end');
+  freeMoveOptions(k).forEach((o, oi) => {
+    const sel = stepMoveSel === oi;
+    const row = el('button', 'move-opt' + (sel ? ' sel ' + (o.good ? 'good' : 'bad') : ''));
+    row.innerHTML = `<div class="mini move-mini">${stripHtml(o.tokens)}</div>` + (o.v === curPos ? '<span class="tag-now">your sentence</span>' : '')
+      + (sel ? `<div class="verdict">${o.good ? '✅ It still makes sense. ' : '🤔 Listen: does that make sense? '}${o.note}</div>` : '');
+    row.onclick = () => { stepMoveSel = oi; render(); say(textOf([...o.tokens, {t:'.'}]).text); };
+    box.appendChild(row);
+    if (sel && o.good && o.v !== curPos){
+      const use = el('button', 'btn good', '👍 Use this order');
+      use.style.margin = '0 0 10px';
+      use.onclick = () => {
+        Object.keys(s.pos).forEach(x => { if (s.pos[x] === 'front' && x !== k) delete s.pos[x]; });
+        s.pos[k] = o.v; stepMovePart = null; stepMoveSel = null;
+        if (phase === 'done') phase = 'extras';
+        changed();
+        coachMsg = {cls:'', ic:'🔀', html:'Moved. Press <b>Read it to me</b>: does it still make sense?'};
+        render();
+      };
+      box.appendChild(use);
+    }
+  });
+  b.appendChild(box);
+}
+
 function moveBank(b){
+  if (step === 3){ stepMoveGroup(b); return; }
   const groups = moveGroups();
   groups.forEach((g, gi) => {
     const box = el('div', 'bank-group');
@@ -1206,6 +1249,7 @@ function freeTokens(st, opts = {}){
   if (!core && (!P.how || P.how === 'mid')) out.push(...how);
   if (front !== 'where') out.push(...where);
   if (front !== 'when') out.push(...when);
+  if (!core && P.how === 'end') out.push(...how);
   if (!core && (!P.second || P.second === 'end')) out.push(...sec);
   if (!opts.noStop && st.stop) out.push({kind:'stop', t:'.'});
   return out;
@@ -1364,6 +1408,7 @@ function freeMoveOptions(k){
     if (/ly$/.test(s.how.t)) o.push(opt('before', true, 'A how word can sit just <b>before the doing</b> word.'));
     if (s.what) o.push(opt('split', false, 'It gets between the <b>doing</b> word and the <b>what</b>. It does not work there.'));
     o.push(opt('mid', true, s.what ? 'It can come after the <b>what</b>.' : 'It can come after the <b>doing</b> word.'));
+    if (s.where || s.when) o.push(opt('end', true, 'It can go at the very <b>end</b>.'));
     return o;
   }
   if (k === 'second') return [

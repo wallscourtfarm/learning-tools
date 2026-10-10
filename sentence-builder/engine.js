@@ -155,8 +155,7 @@ function check(st, scope, stp){
   if (scope === 'all'){
     if (st.describe && !fits(st.describe, 'who', who))
       return {slot:'describe', msg:`${listen(cap(whoPhrase(st)))} Does that word describe it? Try a different <b>describe</b> block.`};
-    if (st.how && (!fits(st.how, 'doing', st.doing) || !fits(st.how, 'who', who)))
-      return {slot:'how', msg:`${listen(doing.t + ' ' + st.how.t)} Does that go together? Try a different <b>how</b> block.`};
+    // how words are not checked: "meanders steadily" is fine even if the card only listed "flows"; the child judges by ear
   }
   return null;
 }
