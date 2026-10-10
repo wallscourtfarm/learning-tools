@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26m';
+const VERSION = '10.10.26n';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -86,7 +86,7 @@ const newClause = () => ({...blank(), front:null, frontComma:false, rel:null, re
 
 /* ---------- tokens for the sentence being built ---------- */
 function buildTokens(opts = {}){
-  if (step === 3 && !first && mode === 'build'){
+  if ((step === 3 || step === 6) && !first && mode === 'build'){
     const tk = freeTokens(s, {core: opts.core, noStop: true});
     if (s.stop) tk.push({kind:'stop', t:'.'});
     return tk;
@@ -351,14 +351,21 @@ function chooseJoin(id){
 }
 
 /* Step 6: fronted adverbial */
+// Step 6 uses the same position-aware sentence as Step 3 (s.pos): the chosen part goes to the front,
+// and the child adds the comma themselves (s.frontComma) before it can be moved anywhere else.
 function chooseFront(cat, card){
   if (settings.readCards && canSpeak()) say(card.t);
-  if (cat === 'where' && s.where && s.where.id === card.id){ s.where = null; s.frontMoved = card; }
-  s.front = {cat, card};
+  const added = !(s[cat] && s[cat].id === card.id);      // an existing where can be moved to the front
+  s[cat] = card;
+  if (cat === 'where' && added) s.whereAdded = true;
+  Object.keys(s.pos).forEach(k => { if (s.pos[k] === 'front') delete s.pos[k]; });
+  s.pos[cat] = 'front';
+  s.front = {cat, card, added};
+  s.frontComma = false;
   phase = 'comma'; changed(); render();
 }
 function clearFront(){
-  if (s.frontMoved){ s.where = s.frontMoved; s.frontMoved = null; }
+  if (s.front){ delete s.pos[s.front.cat]; if (s.front.added){ s[s.front.cat] = null; if (s.front.cat === 'where') s.whereAdded = false; } }
   s.front = null; s.frontComma = false; phase = 'front'; changed(); render();
 }
 
@@ -447,7 +454,8 @@ function judge(yes){
       coachMsg = {cls:'good', ic:'🌟', html:`Your sentence makes sense, so it is now locked. Now add some extra information about <b>${esc(np(s.who))}</b>.`};
     } else {
       const how = first ? (join === 'stop' ? ' Two ideas, two sentences.' : ` Two ideas, joined with <b>${JOINS[join].t}</b>.`)
-        : s.front ? ' The comma shows where the fronted adverbial ends.'
+        : s.front && s.pos[s.front.cat] === 'front' ? ' The comma shows where the fronted adverbial ends.'
+        : s.front ? ` <q>${esc(cap(s.front.card.t))}</q> has moved from the front, so it doesn't need a comma now.`
         : s.rel ? ` The ${s.relPunct === 'brackets' ? 'brackets hold' : 'commas hold'} the extra information.` : '';
       finish(how);
     }
@@ -568,9 +576,10 @@ function renderLine(){
     if (p.kind === 'lit'){ const l = el('span', 'lit', esc(t)); l.dataset.i = i; line.appendChild(l); }
     else if (p.kind === 'join') line.appendChild(joinEl(join, i, {onTap:false}));
     else if (p.kind === 'punct') line.appendChild(markEl(p.t, i, 'extra' + (stripped ? ' hiddenx' : '')));
-    else if (p.kind === 'front'){
-      line.appendChild(chipEl(p.cat, t, i, {label:`${p.cat} · fronted`, extra:true, slot:'front', onTap: tappable ? () => tapChip('front') : false}));
-      if (phase === 'comma') line.appendChild(markEl(',', null, 'empty active'));
+    else if (p.kind === 'front' || p.front){
+      const cat = p.cat || p.kind;
+      line.appendChild(chipEl(cat, t, i, {label:`${cat} · fronted`, extra:true, slot:'front', onTap: tappable ? () => tapChip('front') : false}));
+      if (phase === 'comma' && !(tk[i + 1] && tk[i + 1].front)) line.appendChild(markEl(',', null, 'empty active'));
     }
     else if (p.kind === 'relw'){
       const b = el('button', 'chip join-chip j-subord extra' + (stripped ? ' hiddenx' : '') + (problemSlot === 'rel' ? ' problem' : ''),
@@ -744,6 +753,7 @@ function relBank(b){
 function renderBank(){
   const b = $('#bank'); b.innerHTML = '';
   if (phase === 'done' && moveOpen) return moveBank(b);
+  if (phase === 'ready' && STEPS[step].front && s.frontComma){ stepMoveGroup(b); return; }
   if (phase === 'done' || phase === 'ready') return;
   if (phase === 'join' || editing === 'join') return joinBank(b);
   if (phase === 'front') return frontBank(b);
@@ -894,7 +904,7 @@ function stepMoveGroup(b){
       use.onclick = () => {
         Object.keys(s.pos).forEach(x => { if (s.pos[x] === 'front' && x !== k) delete s.pos[x]; });
         s.pos[k] = o.v; stepMovePart = null; stepMoveSel = null;
-        if (phase === 'done') phase = 'extras';
+        if (phase === 'done') phase = step === 6 ? 'ready' : 'extras';
         changed();
         coachMsg = {cls:'', ic:'🔀', html:'Moved. Press <b>Read it to me</b>: does it still make sense?'};
         render();
@@ -906,7 +916,7 @@ function stepMoveGroup(b){
 }
 
 function moveBank(b){
-  if (step === 3){ stepMoveGroup(b); return; }
+  if (step === 3 || step === 6){ stepMoveGroup(b); return; }
   const groups = moveGroups();
   groups.forEach((g, gi) => {
     const box = el('div', 'bank-group');
@@ -1236,7 +1246,8 @@ function freeTokens(st, opts = {}){
   ['how','when','where','second'].forEach(k => { if (isFront(k)) front = k; });
   if (front){
     const u = front === 'how' ? how : front === 'when' ? when : front === 'where' ? where : sec;
-    out.push(...u.map(x => ({...x, front:true})), {kind:'punct', t:',', feat:'front'});
+    out.push(...u.map(x => ({...x, front:true})));
+    if (st.frontComma !== false) out.push({kind:'punct', t:',', feat:'front'});
   }
   out.push(...who);
   if (!core && P.second === 'split') out.push(...sec);

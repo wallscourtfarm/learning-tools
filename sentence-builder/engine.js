@@ -162,7 +162,7 @@ function check(st, scope, stp){
 
 // Does a fronted adverbial card fit the core sentence?
 function frontFits(st, f){
-  if (!f) return true;
+  if (!f || f.cat === 'how') return true;          // how words are judged by ear (see check())
   return fits(f.card, 'who', st.who) && fits(f.card, 'doing', st.doing);
 }
 
