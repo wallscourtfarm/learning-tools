@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26n';
+const VERSION = '10.10.26o';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -82,7 +82,8 @@ const made = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, F:0, fix:0, write:0};   // this
 const $ = q => document.querySelector(q);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const plural = n => n === 1 ? '' : 's';
-const newClause = () => ({...blank(), front:null, frontComma:false, rel:null, relPunct:null, pos:{}});
+// frontComma stays undefined (comma added automatically) except at Step 6, where the child adds it
+const newClause = () => ({...blank(), front:null, rel:null, relPunct:null, pos:{}});
 
 /* ---------- tokens for the sentence being built ---------- */
 function buildTokens(opts = {}){
@@ -366,7 +367,7 @@ function chooseFront(cat, card){
 }
 function clearFront(){
   if (s.front){ delete s.pos[s.front.cat]; if (s.front.added){ s[s.front.cat] = null; if (s.front.cat === 'where') s.whereAdded = false; } }
-  s.front = null; s.frontComma = false; phase = 'front'; changed(); render();
+  s.front = null; s.frontComma = undefined; phase = 'front'; changed(); render();
 }
 
 /* Step 7: relative clause */
@@ -1284,7 +1285,7 @@ function freeJudge(yes){
   const prob = freeProblem();
   if (yes && !prob){
     fr.needJudge = false; problemSlot = null;
-    if (s.second && s.second.draft) s.second.draft = false;
+    if (s.second && s.second.draft){ s.second.draft = false; fr.lastAdded = 'second'; }
     const n = freeFeatures().length;
     coachMsg = {cls:'good', ic:'🌟', html:`It still makes sense! You have used <b>${n}</b> of <b>${settings.features}</b> features. ${n >= settings.features ? 'That is plenty: too many features can muddle a sentence. Press <b>I\'ve finished</b>.' : 'Add another, or press <b>I\'ve finished</b>.'}`};
   } else if (yes){
@@ -1386,7 +1387,7 @@ function renderFreeCoach(){
   const c = $('#coach');
   let m = coachMsg;
   if (!m){
-    if (fr.needJudge) m = {ic:'🔊', html: canSpeak() ? 'Press <b>Read it to me</b>. Does it still make sense?' : 'Read it aloud quietly. Does it still make sense?'};
+    if (fr.needJudge) m = {ic:'🔊', html: (canSpeak() ? 'Press <b>Read it to me</b>. Does it still make sense?' : 'Read it aloud quietly. Does it still make sense?') + (fr.lastAdded && movableParts().includes(fr.lastAdded) ? ' You can also <b>move</b> it: try the places below.' : '')};
     else if (fr.phase === 'menu') m = {ic:'🧰', html:`Choose a tool to add to your sentence. You have used <b>${freeFeatures().length}</b> of <b>${settings.features}</b> features. Tap anything you added to take it away.`};
     else if (fr.phase === 'pick') m = {ic:'👉', html:`Choose a <b>${CAT[fr.pick].label}</b> block.`};
     else if (fr.phase === 'join') m = {ic:'🔗', html:'How will the second idea join on?'};
@@ -1431,7 +1432,11 @@ function freeMoveOptions(k){
 
 function renderFreeBank(){
   const b = $('#bank'); b.innerHTML = '';
-  if (fr.phase === 'done' || fr.needJudge) return;
+  if (fr.phase === 'done') return;
+  if (fr.needJudge){
+    if (fr.lastAdded && movableParts().includes(fr.lastAdded)) freeMoveBox(b, fr.lastAdded);
+    return;
+  }
   if (fr.phase === 'menu'){
     const used = freeFeatures().length, full = used >= settings.features;
     const g = cardGroup(b, '', `🧰 Tools <span class="count">Features: ${used} of ${settings.features}</span>`, []);
@@ -1458,7 +1463,7 @@ function renderFreeBank(){
     let list = pic[cat] || [];
     cardGroup(b, icon(CAT[cat].icon), cat === 'describe' ? `Describe ${esc(np(s.who))}:` : esc(CAT[cat].q(s)), list.map(card => wordCard(cat, card, false, () => {
       if (settings.readCards && canSpeak()) say(card.t);
-      s[cat] = card; if (cat === 'where') s.whereAdded = true;
+      s[cat] = card; if (cat === 'where') s.whereAdded = true; fr.lastAdded = cat; fr.moveSel = null;
       fr.phase = 'menu'; fr.needJudge = true; heard = false; coachMsg = null; render();
     })));
     return;
@@ -1496,7 +1501,16 @@ function renderFreeBank(){
     const partsList = movableParts();
     const label = k => k === 'second' ? `${JOINS[s.second.join].t}…` : s[k].t;
     cardGroup(b, '', 'Which part do you want to move?', partsList.map(k => plainCard(`card c-${k === 'second' ? 'join-card j-subord' : k}` + (fr.movePart === k ? ' chosen' : ''), esc(label(k)), () => { fr.movePart = k; fr.moveSel = null; render(); })));
-    if (fr.movePart){
+    if (fr.movePart) freeMoveBox(b, fr.movePart);
+  }
+}
+
+// "Where can … go?" — every position for one part, each read aloud; "Use this order" moves it.
+function freeMoveBox(b, k){
+  const label = x => x === 'second' ? `${JOINS[s.second.join].t}…` : s[x].t;
+  {
+    {
+      fr.movePart = k;
       const box = el('div', 'bank-group');
       box.appendChild(el('div', 'bank-q', `<span>🔀 Where can <q>${esc(label(fr.movePart))}</q> go? Tap each one to hear it.</span>`));
       const curPos = s.pos[fr.movePart] || (fr.movePart === 'how' ? 'mid' : 'end');
@@ -1512,7 +1526,7 @@ function renderFreeBank(){
           use.style.margin = '0 0 10px';
           use.onclick = () => {
             Object.keys(s.pos).forEach(x => { if (s.pos[x] === 'front' && x !== fr.movePart) delete s.pos[x]; });
-            s.pos[fr.movePart] = o.v; fr.phase = 'menu'; fr.needJudge = true; heard = false;
+            s.pos[fr.movePart] = o.v; fr.phase = 'menu'; fr.needJudge = true; heard = false; fr.moveSel = null;
             coachMsg = {cls:'', ic:'🔀', html:'Moved. Read it again: does it still make sense?'}; render();
           };
           box.appendChild(use);
