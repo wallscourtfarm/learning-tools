@@ -21,7 +21,7 @@ const JOINS = {
 };
 // joining words in the order children meet them
 const COORD_JOINS = ['and','but','so','or'];
-const SUBORD_JOINS = ['because','when','while','if','although','after','before','until'];
+const SUBORD_JOINS = ['because','when','while','as','if','although','after','before','until'];
 
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cap = t => t ? t[0].toUpperCase() + t.slice(1) : t;

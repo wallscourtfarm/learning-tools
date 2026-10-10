@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26o';
+const VERSION = '10.10.26p';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -1325,7 +1325,9 @@ function renderFree(){
     const t = isWord && capNext ? cap(p.t) : p.t;
     if (isWord) capNext = false;
     if (p.t === '.') capNext = true;
-    const tap = canEdit && p.feat ? () => removeFeat(p.feat) : canEdit ? () => { coachMsg = {cls:'', ic:'🔒', html:'That is part of your core sentence, so it is locked. Tap a part you added to take it away.'}; render(); } : false;
+    // tapping the joining word (or the full stop between two sentences) changes it; the second idea stays
+    const isJoin = p.feat === 'second' && (p.kind === 'join' || p.t === '.');
+    const tap = canEdit && isJoin ? () => { fr.phase = 'rejoin'; coachMsg = null; render(); } : canEdit && p.feat ? () => removeFeat(p.feat) : canEdit ? () => { coachMsg = {cls:'', ic:'🔒', html:'That is part of your core sentence, so it is locked. Tap a part you added to take it away.'}; render(); } : false;
     if (p.kind === 'lit'){ const l = el('span', 'lit', esc(t)); l.dataset.i = i; line.appendChild(l); return; }
     if (p.kind === 'punct'){ const m = markEl(p.t, i, p.feat === 'front' ? 'added' : ''); if (tap) m.onclick = tap; line.appendChild(m); return; }
     if (p.kind === 'join'){ line.appendChild(joinEl(p.jid, i, {onTap: tap || false})); return; }
@@ -1392,6 +1394,7 @@ function renderFreeCoach(){
     else if (fr.phase === 'pick') m = {ic:'👉', html:`Choose a <b>${CAT[fr.pick].label}</b> block.`};
     else if (fr.phase === 'join') m = {ic:'🔗', html:'How will the second idea join on?'};
     else if (fr.phase === 'second') m = {ic:'👉', html:'Build your second idea: <b>who</b>, then <b>doing</b>, then a what or a where if you want one.'};
+    else if (fr.phase === 'rejoin') m = {ic:'🔗', html:'Choose a different joining word. Your second idea stays the same.'};
     else if (fr.phase === 'move') m = {ic:'🔀', html:'Choose a part to move. Tap each place to hear it.'};
   }
   if (fr.phase === 'done' && !coachMsg) m = {cls:'good', ic:'✏️', html:'Now write it in your book.'};
@@ -1452,6 +1455,8 @@ function renderFreeBank(){
       if (full) btn.disabled = true;
       row.appendChild(btn);
     });
+    if (s.second && !s.second.draft)
+      row.appendChild(plainCard('tool-card', `${icon('coord')}<span>Change the joining word</span>`, () => { fr.phase = 'rejoin'; coachMsg = null; render(); }));
     if (movableParts().length){
       row.appendChild(plainCard('tool-card', `<span style="font-size:1.4rem">🔀</span><span>Move a part</span>`, () => { fr.phase = 'move'; fr.movePart = null; fr.moveSel = null; coachMsg = null; render(); }));
     }
@@ -1495,6 +1500,23 @@ function renderFreeBank(){
         })));
     });
     if (c.doing) auxGroup(b, c.doing, c.aux, a => { c.aux = c.aux === a ? null : a; heard = false; coachMsg = null; render(); });
+    return;
+  }
+  if (fr.phase === 'rejoin'){
+    joinCards(b, ['stop', ...COORD_JOINS, ...SUBORD_JOINS], s.second.join, id => {
+      if (settings.readCards && canSpeak() && id !== 'stop') say(JOINS[id].t);
+      const was = JOINS[s.second.join].kind, now = JOINS[id].kind;
+      s.second.join = id;
+      if (!subJoin(id) && s.pos.second) delete s.pos.second;          // only a because/when/as… part can go at the front
+      fr.phase = 'menu'; fr.needJudge = true; heard = false;
+      const sec = textOf(parts(s.second.c)).text.replace(/^./, c => c.toLowerCase());
+      coachMsg = {cls:'', ic:'🔗', html:
+          now === 'subord' && was !== 'subord' ? `Now <q>${esc(JOINS[id].t)} ${esc(s.second.c.who.det ? sec : textOf(parts(s.second.c)).text)}</q> depends on the first idea: a <b>complex</b> sentence. You can move it to the front too. Read it again: does it make sense?`
+        : now === 'coord' && was !== 'coord' ? `Now the two ideas are equal, joined with <b>${esc(JOINS[id].t)}</b>: a <b>compound</b> sentence. Read it again: does it make sense?`
+        : now === 'stop' ? 'Now they are two separate sentences. Read it again: does it make sense?'
+        : `Joined with <b>${esc(JOINS[id].t)}</b> now. Read it again: does it make sense?`};
+      render();
+    }, 'Change the joining word');
     return;
   }
   if (fr.phase === 'move'){
