@@ -312,7 +312,8 @@ TOPICS.find(t => t.id === 'stories').pictures.push(
       {id:'sun', det:'the', t:'sun'}
     ],
     doing:[
-      {id:'walks', t:'walks', needs:'none', who:['robot','boy']},
+      {id:'walks', t:'walks', needs:'none', who:['robot']},
+      {id:'rolls', t:'rolls', needs:'none', who:['boy']},
       {id:'carries', t:'carries', needs:'what', who:['robot']},
       {id:'smiles', t:'smiles', needs:'none', who:['boy']},
       {id:'looks', t:'looks at', needs:'what', who:['boy','robot']},
@@ -331,7 +332,7 @@ TOPICS.find(t => t.id === 'stories').pictures.push(
       {id:'city', t:'the glittering city', doing:['looks']}
     ],
     where:[
-      {id:'walkway', t:'along the walkway', doing:['walks','carries']},
+      {id:'walkway', t:'along the walkway', doing:['walks','rolls','carries']},
       {id:'towers', t:'between the towers', doing:['glides','zooms']},
       {id:'sky', t:'through the sky', doing:['glides','zooms']},
       {id:'beside', t:'beside the walkway', doing:['hovers']},
@@ -349,12 +350,12 @@ TOPICS.find(t => t.id === 'stories').pictures.push(
       {id:'golden', t:'golden', who:['sun']}
     ],
     how:[
-      {id:'slowly', t:'slowly', doing:['walks','sets','glides']},
-      {id:'carefully', t:'carefully', doing:['carries','walks']},
-      {id:'happily', t:'happily', doing:['smiles','walks','looks']},
-      {id:'quickly', t:'quickly', doing:['zooms','glides']},
-      {id:'quietly', t:'quietly', doing:['hums','hovers','glides','walks']},
-      {id:'smoothly', t:'smoothly', doing:['glides','hovers','zooms']}
+      {id:'slowly', t:'slowly', doing:['walks','rolls','sets','glides']},
+      {id:'carefully', t:'carefully', doing:['carries','walks','rolls']},
+      {id:'happily', t:'happily', doing:['smiles','walks','rolls','looks']},
+      {id:'quickly', t:'quickly', doing:['zooms','glides','rolls']},
+      {id:'quietly', t:'quietly', doing:['hums','hovers','glides','walks','rolls']},
+      {id:'smoothly', t:'smoothly', doing:['glides','hovers','zooms','rolls']}
     ],
     when:[
       {id:'oneday', t:'one day'},

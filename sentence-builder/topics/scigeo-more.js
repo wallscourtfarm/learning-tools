@@ -576,7 +576,7 @@ TOPICS.find(t => t.id === 'geography').pictures.push(
       {id:'flag', det:'the', t:'flag'}
     ],
     doing:[
-      {id:'stands', t:'stands', needs:'none', who:['castle','girl','grandma']},
+      {id:'stands', t:'stands', needs:'none', who:['castle','girl']},
       {id:'plays', t:'plays', needs:'what', who:['piper']},
       {id:'wears', t:'wears', needs:'what', who:['piper']},
       {id:'looks', t:'looks up at', needs:'what', who:['girl','grandma']},
