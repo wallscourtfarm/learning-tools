@@ -278,3 +278,40 @@ button.wr-and{border:2px solid #c0392b;color:#c0392b;font-family:'Andika',sans-s
 }
 .aux-card.chosen{outline:4px solid var(--ink);outline-offset:2px}
 .aux-card.dim{opacity:.55}
+#mainNav a.nav-link{color:#fff;font-weight:800;font-size:1rem;padding:8px 14px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:6px;white-space:nowrap;opacity:.88;text-decoration:none}
+#mainNav a.nav-link:hover{background:rgba(255,255,255,.15);opacity:1}
+.home-modes a.home-teach{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:3px solid var(--line);background:#fff;border-radius:16px;padding:14px 16px;color:var(--ink);text-decoration:none}
+.home-modes a.home-teach:hover{border-color:var(--brand)}
+.home-modes a.home-teach b{font-size:1.2rem;font-weight:900}
+.home-modes a.home-teach small{color:var(--muted);font-weight:700;font-size:.92rem}
+
+/* target structure from the Teach tab */
+.target{background:#fff;border:3px solid #f2c94c;border-radius:16px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+#homeTarget{margin:0 0 12px}
+.tg-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800}
+.tg-head small{color:var(--muted);font-weight:700}
+.tg-close{margin-left:auto;border:0;background:#eef2f7;border-radius:999px;width:30px;height:30px;font-weight:900}
+.tg-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 4px}
+.tg-chip{border-radius:8px;padding:5px 10px;color:#fff;font-weight:800;font-size:.95rem;opacity:.45;border:3px solid transparent}
+.tg-chip.c-doing,.tg-chip.c-aux{color:#3a2c00}
+.tg-chip.c-aux{background:var(--doing)}
+.tg-chip.c-coord{background:#fff;color:#c0392b;border-color:#c0392b}
+.tg-chip.c-subord{background:#fff;color:#2e5fa3;border-color:#2e5fa3}
+.tg-chip.c-rel{background:#fff;color:#5b6475;border-color:#7a7a8c}
+.tg-chip.ok{opacity:1;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--good)}
+.tg-lit{font-family:'Andika',sans-serif;font-size:1.1rem;opacity:.5}
+.tg-lit.ok{opacity:1;color:var(--good);font-weight:700}
+.tg-mark{font-weight:900;font-size:1.4rem;opacity:.5}
+.tg-mark.ok{opacity:1;color:var(--good)}
+.tg-eg{color:var(--muted);font-weight:700;font-size:.92rem}
+.tg-eg q{font-family:'Andika',sans-serif;font-weight:400}
+.tg-done{margin-top:6px;font-weight:900;color:var(--good)}
+/* Check my writing: colour-coded chips (from the Teach tab's colour-coder) */
+.wr-chip{display:inline-flex;align-items:baseline;gap:0;border-radius:8px;padding:2px 4px 14px;margin:2px 3px;position:relative;color:#fff}
+.wr-chip::after{content:attr(data-lab);position:absolute;left:0;right:0;bottom:1px;text-align:center;font-family:'Nunito',sans-serif;font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.03em;opacity:.85}
+.wr-chip .wr-w{background:none!important;color:inherit;margin-right:0}
+.wr-chip.c-who{background:var(--who)} .wr-chip.c-doing{background:var(--doing);color:#3a2c00} .wr-chip.c-aux{background:#f7dd86;color:#3a2c00}
+.wr-chip.c-what{background:var(--what)} .wr-chip.c-where{background:var(--where)} .wr-chip.c-when{background:var(--when)}
+.wr-chip.c-how{background:var(--how)} .wr-chip.c-describe{background:var(--describe)}
+.wr-chip.c-coord{background:#fff;color:#c0392b;border:2px solid #c0392b} .wr-chip.c-subord{background:#fff;color:#2e5fa3;border:2px solid #2e5fa3}
+.wr-chip.c-rel{background:#fff;color:#4a4a5a;border:2px dashed #7a7a8c}

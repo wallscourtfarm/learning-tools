@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26p';
+const VERSION = '10.10.26q';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -196,6 +196,8 @@ function showHome(){
   });
   const wc = $('#writeCard'); if (wc) wc.onclick = () => startWrite(null);
   $('#fixNote').textContent = `Fix it sentences use the ${topic.label} pictures.`;
+  const ht = $('#homeTarget');
+  if (ht){ const h = isFree() && typeof targetBannerHtml === 'function' ? targetBannerHtml([]) : ''; ht.innerHTML = h; ht.hidden = !h; }
 }
 
 function showBuildScreen(p, tag){
@@ -293,7 +295,7 @@ function start(p){
   phase = 'core'; heard = false; stripped = false; covered = false; problemSlot = null; coachMsg = null; editing = null;
   moveOpen = false; moveSel = null; stepMovePart = null; stepMoveSel = null;
   showBuildScreen(p, `<b>${STEPS[step].title}</b><span class="sub">: ${esc(STEPS[step].sub)}</span>`);
-  go(`?step=${step}&pic=${topic.id}.${p.id}`);
+  go(`?step=${step}&pic=${topic.id}.${p.id}` + (isFree() && typeof sbTarget !== 'undefined' && sbTarget ? `&target=${sbTarget}` : ''));
   if (!isFree()){ settings.lastStep = step; saveSettings(); }
   render();
 }
@@ -479,6 +481,7 @@ function render(){
   if (mode === 'free') return renderFree();
   if (mode === 'write') return renderWrite();
   renderLine(); renderTools(); renderCoach(); renderBank();
+  if (typeof renderTarget === 'function') renderTarget(buildTokens());
 }
 
 function chipEl(kind, text, i, opts = {}){
@@ -624,6 +627,7 @@ function renderTools(){
     if (moveGroups().length) add(moveOpen ? '✖ Close Move it' : '🔀 Move it', moveOpen ? '' : 'primary', () => { moveOpen = !moveOpen; moveSel = null; render(); });
     add(covered ? '👀 Show me again' : '🙈 Cover it and write', '', () => { covered = !covered; render(); });
     add('➕ Make another', 'primary', () => start(pic));
+    add('📺 Show on the board', '', () => showOnBoard(buildTokens(), pic.title));
     add('🖼️ Next picture', '', () => { const ps = topic.pictures; start(ps[(ps.indexOf(pic) + 1) % ps.length]); });
   } else if (s.who || first){
     add('↺ Start again', '', () => start(pic));
@@ -1139,6 +1143,7 @@ function renderFixTools(){
     if (canSpeak()) add('🔊 Read it to me', '', read);
     add(covered ? '👀 Show me again' : '🙈 Cover it and write', '', () => { covered = !covered; render(); });
     add('➕ Fix another', 'primary', () => startFix(fx.type));
+    add('📺 Show on the board', '', () => showOnBoard(fixTokens(), 'Fixed sentence'));
   }
   if (fx.stage !== 'done') add('↺ A different one', '', () => startFix(fx.type));
 }
@@ -1347,6 +1352,7 @@ function renderFree(){
   }
   line.appendChild(el('span', 'stop', '.'));
   renderFreeTools(); renderFreeCoach(); renderFreeBank();
+  if (typeof renderTarget === 'function') renderTarget(freeTokens(s));
 }
 
 function readFree(opts = {}){ speakTokens(freeTokens(s, opts), () => { heard = true; render(); }); }
@@ -1359,6 +1365,7 @@ function renderFreeTools(){
     add(stripped ? '👀 Show it all' : '🔍 Check the core', '', () => { stripped = !stripped; render(); if (stripped) readFree({core:true}); });
     add(covered ? '👀 Show me again' : '🙈 Cover it and write', '', () => { covered = !covered; render(); });
     add('➕ Make another', 'primary', () => start(pic));
+    add('📺 Show on the board', '', () => showOnBoard(freeTokens(s), pic.title));
     add('🖼️ Next picture', '', () => { const ps = topic.pictures; start(ps[(ps.indexOf(pic) + 1) % ps.length]); });
     return;
   }
@@ -1578,7 +1585,9 @@ async function loadChecker(){
     await loadScript('lib/verbs.js?v=' + VERSION);
     await loadScript('writing.js?v=' + VERSION);
     wr.loaded = true;
-    loadScript('lib/wink-pos-tagger.bundle.js?v=' + VERSION).then(() => { if (wr.result) runCheck(); }).catch(() => {});   // optional, improves accuracy
+    loadScript('lib/wink-pos-tagger.bundle.js?v=' + VERSION)
+      .then(() => loadScript('tagger.js?v=' + VERSION))
+      .then(() => { if (wr.result) runCheck(); else render(); }).catch(() => {});   // optional, improves accuracy
   } catch(e) { wr.failed = true; }
   wr.loading = false;
   render();
@@ -1724,6 +1733,95 @@ function problemCard(sen, pr, si){
 }
 
 // One sentence as a strip: each idea gets its own soft colour; its who is orange, its doing word yellow.
+const WR_CAT_LABEL = {who:'who', doing:'doing', what:'what', where:'where', when:'when', how:'how', describe:'describe', aux:'being / having', coord:'joining', subord:'joining', relative:'extra info'};
+// two-word doing words that take a what ("picks up a rock"); others keep a where ("flowed down the mountain")
+const WR_PHRASAL = new Set(['pick up','picked up','picks up','put down','puts down','take off','takes off','took off','put on','puts on','throw away','throws away','threw away','put away','puts away','take out','takes out','took out','bring back','brings back','brought back','scoop up','scoops up','scooped up','dig up','digs up','dug up','fill up','fills up','pull out','pulls out','pulled out','turn off','turns off','turned off','turn on','turns on','turned on','give back','gives back','gave back','pick out','picks out','picked out','look after','looks after','looked after']);
+// One colour category per word of a checked sentence, or null.
+function colourCats(sen){
+  if (typeof autoTagSentence !== 'function') return null;
+  const start = sen.offs[0][0], end = sen.offs[sen.offs.length - 1][1];
+  let items;
+  try { items = autoTagSentence(wr.checkedText.slice(start, end)); } catch(e) { return null; }
+  const cats = new Array(sen.tokens.length).fill(null);
+  let k = 0;
+  for (const it of items){
+    for (const piece of (it.text || '').match(/[A-Za-z][A-Za-z'’-]*|[0-9]+|[,.!?;:()]/g) || []){
+      while (k < sen.tokens.length && /^[,.!?;:()]$/.test(sen.tokens[k]) && sen.tokens[k] !== piece) k++;
+      if (k >= sen.tokens.length) return null;
+      if (sen.tokens[k].toLowerCase() !== piece.toLowerCase()) return null;     // couldn't line up: no colours
+      if (!/^[,.!?;:()]$/.test(piece)) cats[k] = it.cat;
+      k++;
+    }
+  }
+  // Corrections from the idea finder: it knows which word is really the doing word ("The Mars rover picks…").
+  const AUXW = /^(is|are|was|were|am|has|have|had|do|does|did|can|could|will|would|shall|should|may|might|must)$/i;
+  const DETW = /^(the|a|an|my|his|her|their|our|your|its|this|that|some)$/i;
+  sen.ideas.filter(x => x.kind !== 'rel' && x.verb != null).forEach(x => {
+    const v = x.verb, n = sen.tokens.length;
+    for (let j = v - 1; j >= x.start; j--){
+      const tk = sen.tokens[j];
+      if (/^[,.!?;:()]$/.test(tk) || ['relative','subord','coord','when','where','how','aux'].includes(cats[j])) break;
+      if (['doing','what','lit',null].includes(cats[j]) || (cats[j] === 'describe' && j === v - 1)) cats[j] = 'who';
+    }
+    if (cats[v] !== 'doing' && cats[v] !== 'aux') cats[v] = AUXW.test(sen.tokens[v]) ? 'aux' : 'doing';
+    // "could go": the word after a being/having word is the doing word
+    if (cats[v] === 'aux'){
+      let j = v + 1; if (/^not$/i.test(sen.tokens[j] || '')) j++;
+      const w = (sen.tokens[j] || '').toLowerCase();
+      if (j < n && ['what','who','lit','describe',null].includes(cats[j]) && /^[a-z]+$/.test(w) && ((typeof VERB_BASES !== 'undefined' && VERB_BASES.has(w)) || /(ing|ed)$/.test(w))) cats[j] = 'doing';
+    }
+    // extra-information colour that ran on past the main doing word ("…walked through the forest")
+    let j2 = v + 1;
+    if (cats[j2] === 'relative'){
+      const kind = /^(in|on|at|through|over|under|into|onto|across|along|by|near|behind|beside|from|to|towards|around|past|up|down|inside|outside)$/i.test(sen.tokens[j2]) ? 'where' : 'what';
+      for (; j2 < n && cats[j2] === 'relative' && !/^[,.!?;:()]$/.test(sen.tokens[j2]); j2++) cats[j2] = kind;
+    }
+    const nx = sen.tokens[v + 1], nx2 = sen.tokens[v + 2];
+    if (nx && WR_PHRASAL.has((sen.tokens[v] + ' ' + nx).toLowerCase()) && nx2 && DETW.test(nx2)){
+      cats[v + 1] = 'doing';
+      for (let j = v + 2; j < sen.tokens.length && !/^[,.!?;:()]$/.test(sen.tokens[j]) && cats[j] !== 'subord' && cats[j] !== 'coord'; j++) if (cats[j] === 'where' || cats[j] === 'doing') cats[j] = 'what';
+    }
+  });
+  // questions ("Where is the Mars rover?"): question word + being/having word + who
+  const q0 = (sen.tokens[0] || '').toLowerCase();
+  if (/^(where|when|how|what|why|who|which)$/.test(q0) && AUXW.test(sen.tokens[1] || '')){
+    cats[0] = q0 === 'where' ? 'where' : q0 === 'when' ? 'when' : q0 === 'how' ? 'how' : 'lit';
+    cats[1] = 'aux';
+    for (let j = 2; j < sen.tokens.length && !/^[,.!?;:()]$/.test(sen.tokens[j]) && ['doing','what','who','describe','lit',null].includes(cats[j]); j++){
+      if (j > 2 && cats[j - 1] === 'who' && /(ing|ed)$/.test(sen.tokens[j].toLowerCase())){ cats[j] = 'doing'; break; }
+      cats[j] = 'who';
+    }
+  }
+  // a who with no doing word ("the mars rover, which is a robot."): it is all who, up to the extra information
+  const frag = sen.problems.find(p => p.type === 'fragment' || p.type === 'fragment-rel');
+  if (frag) for (let j = frag.idea.start; j < sen.tokens.length; j++){
+    if (/^[,.!?;:()]$/.test(sen.tokens[j]) || /^(who|which|that|whose)$/i.test(sen.tokens[j])) break;
+    cats[j] = 'who';
+  }
+  // a fronted adverbial with its comma missing ("After lunch the astronaut…") is when / where / how
+  const fc = sen.problems.find(p => p.type === 'frontcomma');
+  if (fc){
+    const first = sen.tokens.findIndex(x => !/^[,.!?;:()]$/.test(x));
+    const fw = (sen.tokens[first] || '').toLowerCase();
+    const kind = /ly$/.test(fw) ? 'how' : /^(after|before|during|until|since|yesterday|today|tomorrow|tonight|soon|later|meanwhile|finally|eventually|once|this|every|all|one|last|next|each|early)$/.test(fw) ? 'when' : 'where';
+    for (let j = first; j < fc.at; j++) if (!/^[,.!?;:()]$/.test(sen.tokens[j])) cats[j] = kind;
+  }
+  return cats;
+}
+// Present-mode entries for a checked sentence (Show on the board).
+function writingEntries(sen){
+  const cats = colourCats(sen); if (!cats) return [];
+  const items = [];
+  sen.tokens.forEach((tk, i) => {
+    if (/^[,.!?;:)]$/.test(tk)){ if (items.length) items[items.length - 1].text += tk; return; }
+    const cat = cats[i] || 'lit';
+    const lastIt = items[items.length - 1];
+    if (lastIt && lastIt.cat === cat && !/[,.!?;:)]$/.test(lastIt.text)) lastIt.text += ' ' + tk;
+    else items.push({cat, text: tk});
+  });
+  return [{title:'My sentence', items}];
+}
+
 function sentenceStrip(sen, si){
   const wrap = el('div', 'wr-strip');
   const ideaOf = new Array(sen.tokens.length).fill(-1);
@@ -1758,20 +1856,37 @@ function sentenceStrip(sen, si){
   if (frag){
     for (let k = frag.idea.start; k < sen.tokens.length; k++){ const tk = sen.tokens[k]; if (/^[.,!?;(]$/.test(tk) || /^(who|which|that|whose)$/i.test(tk)) break; roles[k] = 'w-who'; }
   }
+  // Colour-coding from the Teach tab's colour-coder (tagger.js), corrected by this checker's own
+  // idea finder; if it isn't loaded or can't line up with the words, fall back to idea shading.
+  const cats = colourCats(sen);
+  let group = null, groupCat = null;
+  const closeGroup = () => { group = null; groupCat = null; };
   sen.tokens.forEach((tk, i) => {
     if (gaps.get(i) === 'runon' || gaps.get(i) === 'subcomma'){
+      closeGroup();
       const g = el('button', 'wr-gap', gaps.get(i) === 'runon' ? '▾ <small>full stop?</small>' : '▾ <small>comma?</small>');
       const rc = sen.problems.find(p => p.type === 'relcomma' && (p.at === i || p.close === i));
       g.onclick = () => gaps.get(i) === 'runon' ? fixStopBefore(sen, i) : rc ? fixRelCommas(sen, rc.at, rc.close) : fixCommaBefore(sen, i);
       wrap.appendChild(g);
     }
     const id = ideaOf[i];
-    const cls = 'wr-w ' + (id === 'rel' ? 'idea-rel' : id >= 0 ? 'idea-' + (id % 4) : '') + ' ' + roles[i] + (gaps.get(i) === 'splice' ? ' wr-bad' : '');
+    const cat = cats ? cats[i] : null;
+    const cls = 'wr-w ' + (cats ? '' : (id === 'rel' ? 'idea-rel' : id >= 0 ? 'idea-' + (id % 4) : '') + ' ' + roles[i]) + (gaps.get(i) === 'splice' ? ' wr-bad' : '');
     const w = el(ands && /^and$/i.test(tk) ? 'button' : 'span', cls, esc(tk));
     if (ands && /^and$/i.test(tk)){ w.classList.add('wr-and'); w.onclick = () => fixAndToStop(sen, i); }
     w.dataset.s = si; w.dataset.t = i;
-    if (frag && i === sen.tokens.length - 1 && /^[.!?]$/.test(tk)) wrap.appendChild(el('span', 'wr-missing', 'doing?'));
-    wrap.appendChild(w);
+    if (frag && i === sen.tokens.length - 1 && /^[.!?]$/.test(tk)){ closeGroup(); wrap.appendChild(el('span', 'wr-missing', 'doing?')); }
+    if (cats && cat && cat !== 'lit' && !(ands && /^and$/i.test(tk))){
+      if (groupCat !== cat){
+        group = el('span', 'wr-chip c-' + (cat === 'relative' ? 'rel' : cat));
+        group.dataset.lab = WR_CAT_LABEL[cat] || cat;
+        wrap.appendChild(group); groupCat = cat;
+      }
+      group.appendChild(w);
+    } else {
+      if (!/^[,.!?;:)]$/.test(tk)) closeGroup();
+      wrap.appendChild(w);
+    }
   });
   if (frag && !/^[.!?]$/.test(sen.tokens[sen.tokens.length - 1])) wrap.appendChild(el('span', 'wr-missing', 'doing?'));
   return wrap;
@@ -1815,7 +1930,7 @@ function renderWrite(){
     c.className = 'coach ' + (all.length ? 'think' : 'good');
     const nIdeas = wr.result.sentences.reduce((a, x) => a + x.ideas.filter(i => i.kind !== 'rel').length, 0);
     c.innerHTML = all.length
-      ? `<span class="ic">🔎</span><div>I found <b>${wr.result.sentences.length}</b> sentence${plural(wr.result.sentences.length)} and <b>${nIdeas}</b> idea${plural(nIdeas)}. Each colour is one idea: the <span class="wr-w w-who">who</span> and the <span class="wr-w w-doing">doing word</span> are marked. Look at the questions below.</div>`
+      ? `<span class="ic">🔎</span><div>I found <b>${wr.result.sentences.length}</b> sentence${plural(wr.result.sentences.length)} and <b>${nIdeas}</b> idea${plural(nIdeas)}. Each part is coloured by its job, as in the Teach tab: <span class="wr-chip c-who" data-lab="">who</span> <span class="wr-chip c-doing" data-lab="">doing</span> <span class="wr-chip c-what" data-lab="">what</span> <span class="wr-chip c-where" data-lab="">where</span>… A <b>▾</b> shows where something is missing. Look at the questions below.</div>`
       : `<span class="ic">🌟</span><div>Each sentence has a who and a doing word, the ideas are joined or separated, and I can't see any punctuation to fix. Now read it aloud one more time: <b>does it make sense?</b></div>`;
   }
   if (wr.choosing && !wr.pic){
@@ -1834,6 +1949,8 @@ function renderWrite(){
       const card = el('div', 'bank-group wr-card');
       const head = el('div', 'bank-q', `<span>Sentence ${si + 1}</span>`);
       if (canSpeak()){ const rb = el('button', 'btn small', '🔊'); rb.onclick = () => readSentenceText(sen, si); head.appendChild(rb); }
+      if (typeof autoTagSentence === 'function'){ const pb = el('button', 'btn small', '📺'); pb.title = 'Show on the board'; pb.style.marginLeft = '6px';
+        pb.onclick = () => { const e = writingEntries(sen); if (e.length) window.open('teach/index.html#present=' + encodeURIComponent(JSON.stringify(e)), '_blank'); }; head.appendChild(pb); }
       card.appendChild(head);
       card.appendChild(sentenceStrip(sen, si));
       if (!sen.problems.length) card.appendChild(el('div', 'wr-ok', '✅ I can hear a who and a doing word, and the punctuation looks right. Does it make sense when you read it aloud?'));
@@ -1897,6 +2014,7 @@ $('#modal').onclick = e => { if (e.target.id === 'modal') $('#modal').hidden = t
 function route(){
   if (window.speechSynthesis) speechSynthesis.cancel();
   const p = new URLSearchParams(location.search);
+  if (p.get('target') && typeof sbTarget !== 'undefined') sbTarget = p.get('target');
   const goKey = p.get('go');
   if (goKey){ if (goKey === 'free') step = 'F'; showHome(); setNav(goKey); scrollToId(goKey === 'fix' ? 'fixSec' : goKey === 'free' ? 'picsSec' : 'stepsSec'); return; }
   const sp = p.get('step'); const st = isNaN(+sp) ? sp : +sp; if (STEPS[st]) step = st;

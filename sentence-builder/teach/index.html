@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sentence Builder · Teach — Wallscourt Farm Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Key Stage handwriting fonts for the written sentence line (Present mode) — pinned to
+     the exact Regular face via its unique internal name, not the shared family name every
+     style variant (Regular/Line/Dotted for Sassoon) is registered under. See the KS_FONT_CSS
+     comment in the script below for why this exists — referencing the shared family name
+     picked an unwanted ruled variant in testing. Falls back to the shared name (then Segoe
+     UI) if this exact file isn't the one installed on a given machine. */
+  @font-face{
+    font-family:'WFA Sassoon Infant';
+    src: local('SassoonInfantRg'), local('Sassoon Infant Rg');
+    font-weight:400; font-style:normal;
+  }
+  @font-face{
+    font-family:'WFA Twinkl Cursive';
+    src: local('TwinklCursiveLooped-Regular'), local('Twinkl Cursive Looped Regular');
+    font-weight:400; font-style:normal;
+  }
+  :root{
+    --brand:#1798d3;
+    --dark:#0a0101;
+    --who:#e8792e;
+    --doing:#f2c94c;
+    --what:#4caf6d;
+    --where:#2e74c4;
+    --when:#a35332;
+    --how:#cb79bb;
+    --describe:#a873be;
+    --aux-border:#333333;
+    --coord:#c0392b;
+    --subord:#2e5fa3;
+    --relative-bg:#e9e9f1;
+    --relative-border:#7a7a8c;
+    --lit-bg:#e2e2e2;
+    --bg:#f6f8fa;
+    --card:#ffffff;
+    --ink:#1c1c1c;
+    --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(135deg, #1798d3 0%, #0d7ab8 100%);
+    color:#fff;
+    padding:0 24px;
+    height:58px;
+    display:flex;
+    align-items:center;
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    max-width:1100px;
+    width:100%;
+    margin:0 auto;
+  }
+  .header-row img{
+    height:40px;
+    background:#fff;
+    border-radius:8px;
+    padding:3px 8px;
+    flex-shrink:0;
+  }
+  .header-title{
+    font-weight:900;
+    font-size:1.1rem;
+    flex:1;
+    min-width:0;
+  }
+  .header-links{
+    display:flex;
+    gap:8px;
+    flex-shrink:0;
+  }
+  .header-link{
+    color:rgba(255,255,255,0.85);
+    text-decoration:none;
+    font-size:0.85rem;
+    font-weight:700;
+    padding:6px 12px;
+    border-radius:6px;
+    border:1px solid rgba(255,255,255,0.4);
+    white-space:nowrap;
+    transition:background .15s, color .15s;
+  }
+  .header-link:hover{background:rgba(255,255,255,0.15);color:#fff;}
+  .year-tabs{
+    background:var(--dark);
+    max-width:1100px;
+    margin:0 auto;
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding:10px 16px;
+    -webkit-overflow-scrolling:touch;
+    position:sticky;
+    top:58px;
+    z-index:19;
+  }
+  .year-tab{
+    flex:0 0 auto;
+    background:rgba(255,255,255,0.08);
+    color:#fff;
+    border:2px solid transparent;
+    border-radius:8px;
+    padding:8px 16px;
+    font-size:0.95rem;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s, border-color .15s;
+  }
+  .year-tab:hover{background:rgba(255,255,255,0.18);}
+  .year-tab.active{
+    background:var(--brand);
+    border-color:#fff;
+  }
+
+  main{
+    max-width:1100px;
+    margin:0 auto;
+    padding:16px;
+  }
+
+  .about-box{
+    background:#eaf6fd;
+    border:1px solid #bfe4f5;
+    border-left:5px solid var(--brand);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.88rem;
+    color:#0a3a52;
+    margin-bottom:16px;
+  }
+  .about-box strong{color:var(--dark);}
+
+  .key-strip{
+    background:var(--card);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:18px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+  }
+  .key-strip h2{
+    margin:0 0 8px;
+    font-size:0.85rem;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--muted);
+  }
+  .key-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .key-chip{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-size:0.72rem;
+    font-weight:700;
+    padding:5px 9px;
+    border-radius:6px;
+    color:#fff;
+  }
+  .key-chip.outline{
+    color:#333;
+    background:#fff;
+    border:2px solid #999;
+  }
+  .key-chip .ico{font-size:0.95rem;}
+  .key-chip .ico-img{height:0.95rem; width:auto; vertical-align:middle; margin-right:3px;}
+
+  .year-intro{
+    background:var(--card);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:18px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+    font-size:0.9rem;
+    line-height:1.5;
+    border-top:6px solid var(--brand);
+  }
+  .year-intro h2{margin:0 0 6px; font-size:1.2rem;}
+
+  .structure-card{
+    background:var(--card);
+    border-radius:10px;
+    padding:14px 16px 16px;
+    margin-bottom:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+  }
+  .structure-card h3{
+    margin:0 0 2px;
+    font-size:1.02rem;
+  }
+  .structure-note{
+    margin:0 0 12px;
+    font-size:0.8rem;
+    color:var(--muted);
+  }
+  .structure-note b{color:#333;}
+
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:flex-end;
+    margin-bottom:10px;
+  }
+  .slot{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    min-width:90px;
+  }
+  .slot-label{
+    font-size:0.62rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    text-align:center;
+    margin-bottom:3px;
+    color:#444;
+  }
+  .slot-label .ico{font-size:0.85rem; margin-right:2px;}
+  .slot-label .ico-img{height:0.85rem; width:auto; vertical-align:middle; margin-right:3px;}
+  .slot-label select{
+    border:none;
+    background:transparent;
+    font-family:inherit;
+    font-size:0.62rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    text-align:center;
+    color:#444;
+    cursor:pointer;
+    outline:none;
+    width:100%;
+  }
+  .slot-box{
+    border-radius:7px;
+    padding:6px 4px;
+  }
+  .slot-box input, .slot-box select{
+    width:100%;
+    border:none;
+    background:transparent;
+    text-align:center;
+    font-size:16px;
+    font-weight:600;
+    font-family:inherit;
+    color:inherit;
+    outline:none;
+    padding:2px;
+  }
+  .slot-box select{cursor:pointer;}
+  .slot-box input::placeholder{color:rgba(255,255,255,0.75);}
+
+  .slot-box.aux-box{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    /* Matches a regular slot-box's own measured height (padding + single-line icon/word
+       content, ~62px) so the diamond doesn't sit shorter than the chips beside it. */
+    min-height:62px;
+    padding:6px;
+  }
+  .aux-diamond{
+    width:100%;
+    height:100%;
+    min-height:50px;
+    background:#fff;
+    border:2px solid #222;
+    clip-path: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%);
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .aux-diamond input, .aux-diamond select{
+    width:68%;
+    border:none;
+    background:transparent;
+    text-align:center;
+    font-size:14px;
+    font-weight:700;
+    color:#222;
+    outline:none;
+    padding:0;
+  }
+  .aux-diamond .word-text{ font-size:0.85rem; }
+
+  .comma-mark{
+    align-self:flex-end;
+    width:16px;
+    height:21px;
+    margin:0 2px 6px -2px;
+    flex-shrink:0;
+    background:url('../icons/comma.png') no-repeat center / contain;
+  }
+  .fullstop-mark{
+    align-self:flex-end;
+    width:16px;
+    height:16px;
+    margin:0 0 8px 2px;
+    flex-shrink:0;
+    background:url('../icons/fullstop.png') no-repeat center / contain;
+  }
+  .lit-badge{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--lit-bg);
+    color:#333;
+    border-radius:7px;
+    padding:8px 12px;
+    font-weight:700;
+    font-size:0.95rem;
+    /* Matches a regular slot-box's own height (62px) rather than its own unrelated value —
+       see the aux-box fix above for why these need to agree. */
+    min-height:62px;
+    flex:1;
+  }
+
+  .preview{
+    background:#f1f6f2;
+    border:1.5px dashed #9bbf9f;
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:1.05rem;
+    font-weight:600;
+    color:#1c3d22;
+    min-height:1.4em;
+  }
+  .preview .ph{color:#8aa88d; font-weight:500;}
+
+  .card-actions{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:8px;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .btn-small{
+    background:none;
+    border:1px solid #cbd5db;
+    color:#3a4a52;
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.75rem;
+    cursor:pointer;
+  }
+  .btn-small:hover{background:#eef3f5;}
+
+  .model-examples{
+    margin-top:8px;
+    padding:8px 10px;
+    background:#fffaf0;
+    border-left:3px solid #e0b04a;
+    border-radius:6px;
+    font-size:0.82rem;
+    font-style:italic;
+    color:#5c4a20;
+    display:none;
+  }
+  .model-examples.show{display:block;}
+  .model-examples div{margin:2px 0;}
+
+  .slot-box .word-ico{
+    font-size:1.05rem;
+    line-height:1;
+    text-align:center;
+    margin-bottom:2px;
+    /* An empty word-ico (categories with no icon, e.g. "lit") has no inline content of its
+       own to establish a line box, so line-height alone collapses it to 0 height — min-height
+       reserves the same space a real icon occupies, keeping every chip in a row the same height. */
+    min-height:1.4rem;
+  }
+  .slot-box .word-ico img{ height:1.4rem; width:auto; }
+  .slot-box .word-text{
+    text-align:center;
+    font-weight:700;
+    font-size:0.95rem;
+    padding:2px;
+    word-break:break-word;
+  }
+
+  /* Optional Subject/Verb/Object annotation, shown below the who/doing/what block and
+     joined to it by a short coloured tick. Off by default (a body-level class per category
+     flips each on independently) so toggling is instant everywhere — no re-render needed
+     in the builder cards, free-write chips, or Present Mode, since this element already
+     exists in the DOM.
+
+     Every slot gets one of these (see buildGrammarTermEl) — not just who/doing/what — so
+     that once ANY category's caption is showing, every column in the same row (describe,
+     aux, coordinating, "and", even the punctuation marks that align themselves to the
+     row's bottom edge) reserves the same extra height and nothing shifts out of line.
+     Slots that aren't who/doing/what carry no category class, so the visibility rule below
+     never lights them up — they stay invisible placeholders, matched in height only. */
+  .grammar-term{
+    display:none;
+    visibility:hidden;
+    flex-direction:column;
+    align-items:center;
+    margin-top:4px;
+  }
+  body.show-grammar-term-who .grammar-term,
+  body.show-grammar-term-doing .grammar-term,
+  body.show-grammar-term-what .grammar-term{ display:flex; }
+  body.show-grammar-term-who .grammar-term.who,
+  body.show-grammar-term-doing .grammar-term.doing,
+  body.show-grammar-term-what .grammar-term.what{ visibility:visible; }
+  .grammar-term .tick{ width:1.5px; height:9px; background:currentColor; }
+  .grammar-term .term-text{
+    font-size:0.6rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-top:3px;
+    color:currentColor;
+  }
+  .grammar-term.who{ color:var(--who); }
+  .grammar-term.doing{ color:#b98900; }
+  .grammar-term.what{ color:var(--what); }
+
+  .freewrite-box{
+    background:var(--card);
+    border-radius:10px;
+    padding:14px 16px 16px;
+    margin-bottom:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+  }
+  .freewrite-year-row{
+    margin-bottom:8px;
+  }
+  .freewrite-year-label{
+    font-size:0.82rem;
+    font-weight:700;
+    color:#444;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .freewrite-year-select{
+    font-family:inherit;
+    font-size:0.85rem;
+    font-weight:700;
+    padding:4px 8px;
+    border:1.5px solid #cbd5db;
+    border-radius:6px;
+    background:#fff;
+    cursor:pointer;
+  }
+  .freewrite-box textarea{
+    width:100%;
+    min-height:64px;
+    border:1.5px solid #cbd5db;
+    border-radius:8px;
+    padding:10px;
+    font-size:16px;
+    font-family:inherit;
+    resize:vertical;
+    box-sizing:border-box;
+  }
+  .freewrite-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .btn-main{
+    background:var(--brand);
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    padding:8px 16px;
+    font-size:0.85rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-main:hover{background:#137eb3;}
+  .freewrite-hint{
+    font-size:0.78rem;
+    color:var(--muted);
+    margin-top:10px;
+  }
+  .freewrite-output{
+    margin-top:14px;
+  }
+  .freewrite-empty{
+    color:var(--muted);
+    font-size:0.85rem;
+    font-style:italic;
+  }
+
+  .bank-list{ display:flex; flex-direction:column; gap:10px; }
+  .bank-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    background:#f7f9fa;
+    border:1px solid #dfe6ea;
+    border-radius:8px;
+    padding:10px 12px;
+  }
+  .bank-item-year{
+    font-size:0.68rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:#fff;
+    background:var(--brand);
+    border-radius:5px;
+    padding:3px 7px;
+    flex-shrink:0;
+  }
+  .bank-item-preview{ display:flex; flex-wrap:wrap; gap:5px; flex:1; min-width:200px; }
+  .bank-pill{
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:999px;
+    font-size:0.8rem;
+    font-weight:700;
+  }
+  .bank-item-actions{ display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0; }
+  .bank-item-actions .btn-small{ padding:5px 8px; }
+
+  footer{
+    text-align:center;
+    font-size:0.72rem;
+    color:var(--muted);
+    padding:20px 10px 6px;
+  }
+
+  @media (max-width:480px){
+    .slot{min-width:78px;}
+    .header-title{font-size:0.95rem;}
+    .header-link{padding:6px 8px;font-size:0.78rem;}
+  }
+
+  /* ---------- Present mode: full-screen, click/tap-to-reveal ---------- */
+  .present-overlay{
+    position:fixed;
+    inset:0;
+    background:#0a0101;
+    z-index:1000;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:4vh 4vw;
+    cursor:pointer;
+    user-select:none;
+  }
+  .present-overlay.show{ display:flex; }
+  .present-topbar{
+    position:absolute;
+    top:0; left:0; right:0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 24px;
+    cursor:default;
+  }
+  .present-step{
+    color:#cfe9f7;
+    font-size:1rem;
+    font-weight:700;
+    letter-spacing:0.04em;
+  }
+  .present-close{
+    background:rgba(255,255,255,0.12);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:10px 16px;
+    font-size:1rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .present-close:hover{ background:rgba(255,255,255,0.22); }
+  .present-toggle-group{ display:flex; align-items:center; gap:14px; }
+  .present-toggle{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    color:#cfe9f7;
+    font-size:0.85rem;
+    font-weight:700;
+    cursor:pointer;
+    user-select:none;
+  }
+  .present-toggle input{ width:16px; height:16px; cursor:pointer; accent-color:var(--brand); }
+  .present-toggle.who input{ accent-color:var(--who); }
+  .present-toggle.doing input{ accent-color:var(--doing); }
+  .present-toggle.what input{ accent-color:var(--what); }
+  .present-title{
+    color:#8fb8cc;
+    font-size:1.3vw;
+    min-font-size:14px;
+    font-weight:700;
+    margin-bottom:2vh;
+    text-align:center;
+    cursor:default;
+  }
+  .present-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:stretch;
+    justify-content:center;
+    gap:1.4vw;
+    max-width:94vw;
+    cursor:default;
+  }
+  .present-chip{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-width:9vw;
+    max-width:22vw;
+    padding:1.6vh 1.4vw;
+    border-radius:14px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.35);
+    opacity:0;
+    transform:translateY(14px) scale(0.96);
+    transition:opacity .28s ease, transform .28s ease;
+  }
+  .present-chip .p-comma{
+    position:absolute;
+    right:-1.2vw;
+    bottom:-1.6vh;
+    width:1.6vw;
+    height:2.1vw;
+    min-width:16px;
+    min-height:21px;
+    background:url('../icons/comma.png') no-repeat center / contain;
+    filter:invert(1) brightness(2);
+  }
+  .present-chip.visible{ opacity:1; transform:translateY(0) scale(1); }
+  .present-chip .p-icon{ font-size:2.2vw; line-height:1; margin-bottom:0.4vh; }
+  .present-chip .p-icon img{ height:3.4vw; min-height:36px; width:auto; }
+  .present-chip .p-label{ font-size:0.9vw; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4vh; }
+  .present-chip .p-word{ font-size:2vw; font-weight:800; text-align:center; }
+  /* Same padding as a regular chip (not its own value) so the diamond box lands at the
+     same overall height as the who/doing/what chips beside it in the row — the diamond
+     itself is then sized to fill exactly that leftover content height. */
+  .present-chip.aux-box{ background:var(--doing); padding:1.6vh 1.4vw; }
+  .present-chip .aux-diamond{
+    width:8vw; height:8vw; max-width:125px; max-height:125px;
+    background:#fff; border:3px solid #222;
+    clip-path: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .present-chip .aux-diamond .p-word{ font-size:1.4vw; color:#222; }
+  .present-token{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    opacity:0;
+    transform:translateY(14px) scale(0.96);
+    transition:opacity .28s ease, transform .28s ease;
+  }
+  .present-token.visible{ opacity:1; transform:translateY(0) scale(1); }
+  .present-token .present-chip, .present-token .present-lit{
+    opacity:1; transform:none; transition:none; /* the wrapper now owns the reveal animation */
+    /* .present-row stretches every token in it to the row's tallest token (e.g. a relative
+       clause long enough to wrap onto two lines) — but that extra height used to land as
+       dead space below the chip, inside the token, instead of on the chip itself. So a short
+       one-line chip ("Mr Fox") stayed its own natural (shorter) height while a two-line
+       neighbour ("whose eyes shone like the moon") stretched the token around it, and the
+       two boxes' bottoms visibly didn't line up. flex-grow lets the chip itself claim that
+       leftover space — its own content-centering (already set above) keeps the text centred
+       inside the now-taller box, so every chip in a row ends up the same visible height.
+    */
+    flex:1 1 auto;
+  }
+  .present-token .grammar-term{ margin-top:1vh; }
+  .present-token .grammar-term .tick{ width:2px; height:1.4vh; }
+  .present-token .grammar-term .term-text{ font-size:0.85vw; margin-top:0.5vh; }
+  .present-lit{
+    display:flex; align-items:center; justify-content:center;
+    background:#e2e2e2; color:#333; border-radius:14px;
+    /* Extra vertical padding (not just 1.6vh) so a plain one-line word like "and" reaches
+       roughly the same overall height as a who/doing/what chip beside it (icon + label +
+       word stacked) instead of sitting as a noticeably smaller box in the row. */
+    padding:5.6vh 1.4vw; font-size:1.6vw; font-weight:800;
+    opacity:0; transform:translateY(14px) scale(0.96);
+    transition:opacity .28s ease, transform .28s ease;
+  }
+  .present-lit.visible{ opacity:1; transform:translateY(0) scale(1); }
+  .present-comma{
+    align-self:flex-end;
+    color:#fff;
+    font-size:2.4vw;
+    font-weight:800;
+    opacity:0;
+    transition:opacity .28s ease;
+    margin:0 -0.6vw 1.2vh -0.4vw;
+  }
+  .present-comma.visible{ opacity:1; }
+  .present-fullstop{
+    align-self:flex-end;
+    width:1.6vw;
+    height:1.6vw;
+    min-width:14px;
+    min-height:14px;
+    background:url('../icons/fullstop.png') no-repeat center / contain;
+    filter:invert(1) brightness(2);
+    margin:0 0 1vh 0.6vw;
+    opacity:0;
+    transition:opacity .28s ease;
+    flex-shrink:0;
+  }
+  .present-fullstop.visible{ opacity:1; }
+  .present-sentence{
+    margin-top:4vh;
+    color:#fff;
+    font-size:2.4vw;
+    font-weight:800;
+    text-align:center;
+    max-width:88vw;
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity .35s ease, transform .35s ease;
+    cursor:default;
+  }
+  .present-sentence.visible{ opacity:1; transform:translateY(0); }
+  .present-hint{
+    position:absolute;
+    bottom:20px;
+    color:#7f97a3;
+    font-size:0.85rem;
+    cursor:default;
+  }
+
+  /* shared Sentence Builder header (same look as ../app.css) */
+  #sbTop{height:auto;position:static;box-shadow:none;display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;padding:8px 16px 0;background:linear-gradient(90deg,#1798d3,#0f6fa0);color:#fff;font-family:'Nunito',system-ui,sans-serif}
+  .sb-brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+  .sb-brand img{height:40px;width:auto;background:#fff;border-radius:8px;padding:3px}
+  .sb-brand b{display:block;font-size:1.25rem;font-weight:900;line-height:1.1}
+  .sb-brand small{display:block;font-size:.78rem;opacity:.85}
+  .sb-tools{margin-left:auto;display:flex;gap:8px}
+  .sb-tool{background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:6px 12px;font-weight:800;font-size:.9rem;text-decoration:none}
+  .sb-tool:hover{background:rgba(255,255,255,.28)}
+  #sbNav{flex:1 0 100%;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-top:2px}
+  #sbNav a{color:#fff;font-weight:800;font-size:1rem;padding:8px 14px;border-radius:10px 10px 0 0;display:flex;gap:6px;align-items:center;white-space:nowrap;text-decoration:none;opacity:.88}
+  #sbNav a:hover{background:rgba(255,255,255,.15);opacity:1}
+  #sbNav a.on{background:#fff;color:#0f6fa0;opacity:1}
+  .year-tabs{top:0 !important}
+  @media (max-width:640px){ #sbNav a{font-size:.88rem;padding:7px 9px} .sb-brand small,.sb-tool span{display:none} }
+  .try-link{text-decoration:none;display:inline-flex;align-items:center;background:#fff7d6;border-color:#f2c94c !important}
+</style>
+</head>
+<body>
+
+<header id="sbTop">
+  <a class="sb-brand" href="../index.html">
+    <img src="../../logo.png" alt="" onerror="this.style.display='none'">
+    <div><b>Sentence Builder</b><small>Wallscourt Farm Academy</small></div>
+  </a>
+  <div class="sb-tools">
+    <a class="sb-tool" href="reference-guide.pdf" target="_blank" rel="noopener">📄 <span>Reference guide</span></a>
+    <a class="sb-tool" href="../print.html" target="_blank" rel="noopener">🖨️ <span>Printables</span></a>
+  </div>
+  <nav id="sbNav" aria-label="Main">
+    <a href="../index.html">🏠<span>Home</span></a>
+    <a href="../index.html?go=build">🧱<span>Build a sentence</span></a>
+    <a href="../index.html?go=free">✨<span>Free build</span></a>
+    <a href="../index.html?mode=write">📝<span>Check my writing</span></a>
+    <a href="../index.html?go=fix">🔧<span>Fix it</span></a>
+    <a class="on" href="index.html">🎓<span>Teach</span></a>
+  </nav>
+</header>
+<div class="year-tabs" id="yearTabs"></div>
+
+<main>
+  <div class="about-box">
+    <strong>How to use this:</strong> Pick a year group above. Each row shows a sentence structure from the National Curriculum, broken into colour-coded parts using Jacobs Education's <em>Colour-Coded Sentence Progression</em>. Tap any coloured block and type your own word or phrase — the sentence below rebuilds itself as you go. Use a class's own year group for whole-class teaching, or drop down/up a year group to scaffold or stretch individual pupils. Or try the <strong>✏️ My sentence</strong> tab to have any sentence you write auto-coloured. On the whiteboard, use <strong>🎬 Present</strong> on any sentence to reveal it block by block, full screen.
+  </div>
+
+  <div class="key-strip">
+    <h2>Colour key</h2>
+    <div class="key-grid" id="keyGrid"></div>
+  </div>
+
+  <div id="yearContent"></div>
+</main>
+
+<footer>
+  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 10.10.26q
+</footer>
+
+<div class="present-overlay" id="presentOverlay">
+  <div class="present-topbar">
+    <div class="present-step" id="presentStep"></div>
+    <div class="present-toggle-group">
+      <label class="present-toggle who">
+        <input type="checkbox" id="grammarTermToggleWho">
+        Subject
+      </label>
+      <label class="present-toggle doing">
+        <input type="checkbox" id="grammarTermToggleDoing">
+        Verb
+      </label>
+      <label class="present-toggle what">
+        <input type="checkbox" id="grammarTermToggleWhat">
+        Object
+      </label>
+    </div>
+    <button class="present-close" id="presentClose">✕ Close</button>
+  </div>
+  <div class="present-title" id="presentTitle"></div>
+  <div class="present-row" id="presentRow"></div>
+  <div class="present-sentence" id="presentSentence"></div>
+  <div class="present-hint">Click / tap / → to reveal the next block · ← to go back · Esc to close</div>
+</div>
+
+<script src="../lib/pptxgenjs.bundle.js"></script>
+<script src="../lib/wink-pos-tagger.bundle.js"></script>
+<script src="../structures.js?v=10.10.26q"></script>
+<script src="../tagger.js?v=10.10.26q"></script>
+<script>
+/* ---------- Colour / type definitions ---------- */
+const TYPE = {
+  who:      {label:'who',            bg:'var(--who)',      fg:'#fff', iconSrc:'../icons/who.png'},
+  doing:    {label:'doing',          bg:'var(--doing)',    fg:'#3a2c00', iconSrc:'../icons/doing.png'},
+  what:     {label:'what',           bg:'var(--what)',     fg:'#fff', iconSrc:'../icons/what.png'},
+  where:    {label:'where',          bg:'var(--where)',    fg:'#fff', iconSrc:'../icons/where.png'},
+  when:     {label:'when',           bg:'var(--when)',     fg:'#fff', iconSrc:'../icons/when.png'},
+  how:      {label:'how',            bg:'var(--how)',      fg:'#fff', iconSrc:'../icons/how.png'},
+  describe: {label:'describe',       bg:'var(--describe)', fg:'#fff', iconSrc:'../icons/describe.png'},
+  aux:      {label:'',               bg:'var(--doing)', fg:'#222', icon:'', diamond:true},
+  coord:    {label:'co-ordinating',  bg:'#fff', fg:'var(--coord)',  border:'2px solid var(--coord)', iconSrc:'../icons/coord.png'},
+  subord:   {label:'subordinating',  bg:'#fff', fg:'var(--subord)', border:'2px solid var(--subord)', iconSrc:'../icons/subord.png'},
+  relative: {label:'relative clause',bg:'var(--relative-bg)', fg:'#333', border:'2px solid var(--relative-border)', iconSrc:'../icons/relative.png'},
+  lit:      {label:'',               bg:'var(--lit-bg)', fg:'#333', icon:''}
+};
+
+/* Returns icon markup for a TYPE def: an <img> when iconSrc is set, else an emoji span. */
+function iconHTML(def, altText){
+  if(def.iconSrc) return `<img class="ico-img" src="${def.iconSrc}" alt="${altText||''}">`;
+  if(def.icon) return `<span class="ico">${def.icon}</span>`;
+  return '';
+}
+function makeIconEl(def, altText){
+  if(def.iconSrc){
+    const img = document.createElement('img');
+    img.src = def.iconSrc;
+    img.alt = altText || '';
+    return img;
+  }
+  if(def.icon){
+    const span = document.createElement('span');
+    span.textContent = def.icon;
+    return span;
+  }
+  return null;
+}
+
+// Key Stage handwriting fonts for the WRITTEN SENTENCE line only (PowerPoint export and
+// Present mode) — never the word-block text/labels, which always stay Segoe UI. Both fonts
+// are installed as regular-weight-only handwriting/guide fonts (no true bold face), so
+// wherever one of these applies the sentence is set unbolded rather than faking a bold.
+//
+// Sassoon (and some Twinkl families) ship several styles — Regular, a ruled "Line" guide
+// variant, a "Dotted" variant — all registered under the SAME shared font-family name
+// ("Sassoon Infant"). Referencing that shared name directly is ambiguous: which installed
+// style a browser (or PowerPoint) actually picks is undefined, and in testing it silently
+// picked the ruled "Line" variant instead of Regular — the sentence rendered in the right
+// font family but with an unwanted baseline rule under every word. KS_FONT_CSS pins the
+// exact Regular face via its unique internal PostScript name (`local('SassoonInfantRg')`,
+// from the font's own name table — not something to guess, extract with a tool like
+// fontTools if a font is ever swapped), only falling back to the ambiguous shared name if
+// that exact file isn't present. KS_FONT_PPTX is separate because PowerPoint has no
+// equivalent to @font-face/local() — it just resolves a plain name against installed
+// fonts — so it uses the precise sub-family name instead, which Windows/Office typically
+// list as a distinct selectable font rather than grouping by family the way macOS does.
+const KS_FONT_CSS = { ks1: "'WFA Sassoon Infant', 'Sassoon Infant'", ks2: "'WFA Twinkl Cursive', 'Twinkl Cursive Looped'" };
+const KS_FONT = { ks1: 'Sassoon Infant Rg', ks2: 'Twinkl Cursive Looped Regular' };
+
+// PowerPoint slide background/border per year group, in the school's own Y1-Y6 brand
+// colours (wallscourtfarm/wfa-shared's wfa.css --y1..--y6 — Y1/Y5 and Y2/Y6 share a colour
+// there already, not a bug introduced here). Each pair is that colour's own hue at a very
+// pale fill and a dark border, the same "pale fill, dark border" relationship as the plain
+// pale-blue scheme this replaces — computed once via HSL (fill: same hue, S70/L91; border:
+// same hue, S70/L34), not picked by eye per year, so all six stay visually consistent.
+const YEAR_SLIDE_COLOR = {
+  y1: { fill:'F8E7D8', border:'93521A' },
+  y2: { fill:'D8F8E5', border:'1A934D' },
+  y3: { fill:'F8D8EB', border:'931A62' },
+  y4: { fill:'D8EEF8', border:'1A6D93' },
+  y5: { fill:'F8E7D8', border:'93521A' },
+  y6: { fill:'D8F8E5', border:'1A934D' },
+};
+const DEFAULT_SLIDE_COLOR = { fill:'DEEFFB', border:'1B4F91' };
+function ksForYear(yearId){
+  if(yearId==='y1' || yearId==='y2') return 'ks1';
+  if(yearId && /^y[3-6]$/.test(yearId)) return 'ks2';
+  return null;
+}
+
+/* Hex fills for PowerPoint export (PptxGenJS needs raw hex, not CSS vars) */
+const HEX_FILL = {
+  who:'E8792E', doing:'F2C94C', what:'4CAF6D', where:'2E74C4', when:'A35332',
+  how:'CB79BB', describe:'A873BE', aux:'F2C94C', coord:'FFFFFF', subord:'FFFFFF',
+  relative:'E9E9F1', lit:'E2E2E2'
+};
+const HEX_TEXT = {
+  who:'FFFFFF', doing:'3A2C00', what:'FFFFFF', where:'FFFFFF', when:'FFFFFF',
+  how:'FFFFFF', describe:'FFFFFF', aux:'222222', coord:'C0392B', subord:'2E5FA3',
+  relative:'333333', lit:'333333'
+};
+const HEX_BORDER = { coord:'C0392B', subord:'2E5FA3', relative:'7A7A8C' };
+
+/* Category list used by the free-write colour picker (order matters for the dropdown) */
+const CATEGORY_ORDER = ['who','doing','what','where','when','how','describe','aux','coord','subord','relative','lit'];
+/* Auxiliary/modal word choices offered in the aux diamond's dropdown, in both the
+   structured builder and the free-write tool. */
+const AUX_OPTIONS = ['is','was','are','were','has','have','might','can','could','may','must','shall','should','will','would'];
+function categoryDisplayName(t){
+  if(t==='aux') return 'is / was / has / might…';
+  if(t==='lit') return 'plain (not coloured)';
+  // "who" is really the grammatical subject, which isn't always a person (e.g. "the ball
+  // deflates") — but that formal term now lives in the separate, optional Subject/Verb/
+  // Object annotation (see GRAMMAR_TERM) rather than being baked into this label, so it
+  // just returns the plain word like every other category.
+  return TYPE[t].label;
+}
+
+const PLACEHOLDER = {
+  who:'the child', doing:'eats', what:'the lolly', where:'at the table',
+  when:'before school', how:'quickly', describe:'happy', relative:'who was smiling'
+};
+
+/* ---------- Optional Subject/Verb/Object annotation ---------- */
+// Who/doing/what always show as they do today; this is an extra, separated layer that a
+// teacher can switch on once pupils are ready for the formal grammar terms. Each of the
+// three has its own independent on/off setting (not one combined switch), toggled from
+// three checkboxes in Present Mode's toolbar and remembered between visits. Every setting
+// applies everywhere at once — year-group builder, free-write, Present Mode — via a
+// body-level class per category, so toggling needs no re-render.
+const GRAMMAR_TERM = { who:'Subject', doing:'Verb', what:'Object' };
+const GRAMMAR_TERM_STORAGE_PREFIX = 'wfa_scp_showGrammarTerm_';
+const GRAMMAR_TERM_TOGGLE_ID = { who:'grammarTermToggleWho', doing:'grammarTermToggleDoing', what:'grammarTermToggleWhat' };
+const showGrammarTerm = {};
+function setShowGrammarTerm(cat, v){
+  showGrammarTerm[cat] = v;
+  document.body.classList.toggle('show-grammar-term-'+cat, v);
+  try { localStorage.setItem(GRAMMAR_TERM_STORAGE_PREFIX+cat, v ? '1' : '0'); } catch(e) {}
+}
+Object.keys(GRAMMAR_TERM).forEach(cat=>{
+  let v = false;
+  try { v = localStorage.getItem(GRAMMAR_TERM_STORAGE_PREFIX+cat) === '1'; } catch(e) {}
+  showGrammarTerm[cat] = v;
+  document.body.classList.toggle('show-grammar-term-'+cat, v);
+  const toggleEl = document.getElementById(GRAMMAR_TERM_TOGGLE_ID[cat]);
+  toggleEl.checked = v;
+  toggleEl.addEventListener('change', ()=> setShowGrammarTerm(cat, toggleEl.checked));
+});
+// Builds the tick + term-text element for a slot. Who/doing/what get their real term and
+// the category class that lets the CSS above make them visible; every other category
+// still gets one (just uncoloured, textless) purely to hold the same height — see the
+// comment on .grammar-term for why every slot needs one, not just these three.
+function buildGrammarTermEl(cat){
+  const term = GRAMMAR_TERM[cat];
+  const el = document.createElement('div');
+  el.className = 'grammar-term' + (term ? ' ' + cat : '');
+  const tick = document.createElement('div');
+  tick.className = 'tick';
+  const text = document.createElement('div');
+  text.className = 'term-text';
+  text.textContent = term || ' ';
+  el.appendChild(tick);
+  el.appendChild(text);
+  return el;
+}
+
+/* ---------- Sentence bank: a persistent library of saved sentences ---------- */
+// Lets a teacher colour several sentences ahead of a lesson (from "My sentence") and save
+// each one, then present the whole set back to back in one continuous Present Mode session
+// instead of closing and reopening between each one. Kept in localStorage so it survives
+// reloads and is still there next lesson, next week.
+const SENTENCE_BANK_KEY = 'wfa_scp_sentenceBank';
+let sentenceBank = [];
+try {
+  const raw = localStorage.getItem(SENTENCE_BANK_KEY);
+  if(raw) sentenceBank = JSON.parse(raw).filter(e => e && Array.isArray(e.items) && e.items.length);
+} catch(e) { sentenceBank = []; }
+function saveSentenceBank(){
+  try { localStorage.setItem(SENTENCE_BANK_KEY, JSON.stringify(sentenceBank)); } catch(e) {}
+}
+function addToSentenceBank(items, yearId){
+  const clean = items.filter(it => it.text && it.text.trim());
+  if(!clean.length) return;
+  sentenceBank.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), items: clean, yearId });
+  saveSentenceBank();
+}
+function removeFromSentenceBank(id){
+  sentenceBank = sentenceBank.filter(e => e.id !== id);
+  saveSentenceBank();
+}
+function moveInSentenceBank(id, dir){
+  const i = sentenceBank.findIndex(e => e.id === id);
+  const j = i + dir;
+  if(i<0 || j<0 || j>=sentenceBank.length) return;
+  [sentenceBank[i], sentenceBank[j]] = [sentenceBank[j], sentenceBank[i]];
+  saveSentenceBank();
+}
+
+/* ---------- Helper to build a slot token ---------- */
+function s(type, def, extra){ return Object.assign({type, default:def}, extra||{}); }
+function comma(){ return {type:'comma'}; }
+function lit(text){ return {type:'lit', text}; }
+
+/* ---------- Year data ---------- */
+// YEARS (the structures) now live in ../structures.js, shared with the pupil side.
+const KEY_ORDER = ['who','doing','what','where','when','how','describe','aux','coord','subord','relative'];
+const KEY_LABELS = {aux:'is / was / has / might…', coord:'co-ordinating', subord:'subordinating', relative:'relative clause'};
+const keyGrid = document.getElementById('keyGrid');
+KEY_ORDER.forEach(t=>{
+  const def = TYPE[t];
+  const chip = document.createElement('div');
+  const isOutline = def.border;
+  chip.className = 'key-chip' + (isOutline ? ' outline' : '');
+  if(!isOutline){ chip.style.background = def.bg; }
+  else { chip.style.borderColor = def.fg; chip.style.color = def.fg; }
+  chip.innerHTML = iconHTML(def, t) + (KEY_LABELS[t] || def.label);
+  keyGrid.appendChild(chip);
+});
+
+/* ---------- Tabs render ---------- */
+const tabsEl = document.getElementById('yearTabs');
+YEARS.forEach((y,i)=>{
+  const b = document.createElement('button');
+  b.className = 'year-tab' + (i===0?' active':'');
+  b.textContent = y.label;
+  b.dataset.id = y.id;
+  b.addEventListener('click', ()=> selectYear(y.id));
+  tabsEl.appendChild(b);
+});
+const freeTabBtn = document.createElement('button');
+freeTabBtn.className = 'year-tab';
+freeTabBtn.textContent = '✏️ My sentence';
+freeTabBtn.dataset.id = 'free';
+freeTabBtn.addEventListener('click', ()=> selectFreeWrite());
+tabsEl.appendChild(freeTabBtn);
+const bankTabBtn = document.createElement('button');
+bankTabBtn.className = 'year-tab';
+bankTabBtn.textContent = '📚 My sentences';
+bankTabBtn.dataset.id = 'bank';
+bankTabBtn.addEventListener('click', ()=> selectBank());
+tabsEl.appendChild(bankTabBtn);
+
+/* ---------- Shared sentence assembly ---------- */
+function assembleSentenceText(items){
+  let parts = items.map(it => (it.text||'').trim()).filter(Boolean);
+  let sentence = parts.join(' ').replace(/\s+,/g,',').trim();
+  if(sentence){
+    sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+    if(!/[.!?]$/.test(sentence)) sentence += '.';
+  }
+  return sentence;
+}
+
+/* ---------- PowerPoint export (build-up slide sequence) ---------- */
+function computeSlideLayout(n){
+  const SLIDE_W = 13.33, SLIDE_H = 7.5;
+  const marginX = 0.6, gap = 0.18;
+  const rows = n <= 6 ? 1 : 2;
+  const perRow = Math.ceil(n/rows);
+  const usableW = SLIDE_W - marginX*2;
+  const blockW = Math.min(2.6, (usableW - gap*(perRow-1)) / perRow);
+  const blockH = 1.3, rowGap = 0.35;
+  const startY = rows===1 ? 2.7 : 2.0;
+  const positions = [];
+  for(let idx=0; idx<n; idx++){
+    const row = Math.floor(idx/perRow);
+    const col = idx % perRow;
+    const itemsInRow = Math.min(perRow, n-row*perRow);
+    const rowW = blockW*itemsInRow + gap*(itemsInRow-1);
+    const rowStartX = (SLIDE_W - rowW)/2;
+    positions.push({ x: rowStartX + col*(blockW+gap), y: startY + row*(blockH+rowGap), w: blockW, h: blockH });
+  }
+  return positions;
+}
+
+const ICON_DATA_CACHE = {};
+function getIconDataURI(src){
+  if(ICON_DATA_CACHE[src]) return ICON_DATA_CACHE[src];
+  const p = fetch(src)
+    .then(r => r.blob())
+    .then(blob => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    }))
+    .catch(()=> null);
+  ICON_DATA_CACHE[src] = p;
+  return p;
+}
+
+async function exportItemsToPptx(items, opts){
+  opts = opts || {};
+  const cleanItems = items.filter(it => it.text && it.text.trim());
+  if(!cleanItems.length){ alert('Nothing to export yet — build a sentence first.'); return; }
+  if(typeof PptxGenJS === 'undefined'){ alert('PowerPoint export is unavailable (the pptxgenjs library did not load).'); return; }
+
+  const iconSrcs = [...new Set(cleanItems.map(it => TYPE[it.cat] && TYPE[it.cat].iconSrc).filter(Boolean))];
+  const iconEntries = await Promise.all(iconSrcs.map(async src => [src, await getIconDataURI(src)]));
+  const iconData = Object.fromEntries(iconEntries);
+
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name:'WFA_WIDE', width:13.33, height:7.5 });
+  pptx.layout = 'WFA_WIDE';
+
+  const positions = computeSlideLayout(cleanItems.length);
+  const many = cleanItems.length > 6;
+  const labelSize = many ? 8 : 10;
+  const wordSize = many ? 12 : 15;
+
+  const ksFont = KS_FONT[opts.ks];
+  const slideColor = YEAR_SLIDE_COLOR[opts.yearId] || DEFAULT_SLIDE_COLOR;
+
+  for(let reveal=1; reveal<=cleanItems.length; reveal++){
+    const slide = pptx.addSlide();
+    slide.background = { color: slideColor.fill };
+    slide.addShape('rect', {
+      x:0.15, y:0.15, w:13.33-0.3, h:7.5-0.3,
+      fill:{ type:'none' },
+      line:{ color: slideColor.border, width:3 }
+    });
+    if(opts.title){
+      slide.addText(opts.title, { x:0.4, y:0.2, w:12.5, h:0.5, fontSize:16, bold:true, color:'0A0101', fontFace:'Segoe UI' });
+    }
+    for(let idx=0; idx<reveal; idx++){
+      const it = cleanItems[idx];
+      const pos = positions[idx];
+      const fill = HEX_FILL[it.cat] || 'CCCCCC';
+      const textColor = HEX_TEXT[it.cat] || '000000';
+      const border = HEX_BORDER[it.cat];
+      const catLabel = (it.cat==='aux' || it.cat==='lit') ? '' : categoryDisplayName(it.cat).toUpperCase();
+      slide.addShape('roundRect', {
+        x: pos.x, y: pos.y, w: pos.w, h: pos.h,
+        fill: { color: fill },
+        line: border ? { color: border, width: 1.5 } : { color: fill, width: 0 },
+        rectRadius: 0.08
+      });
+      if(it.cat === 'aux'){
+        // Auxiliary/modal verb (is/was/has/might…): a white diamond inset within the yellow block,
+        // matching the CPD source's own symbol for "verb, but not the action being done".
+        const insetX = pos.w*0.08, insetY = pos.h*0.1;
+        const dpos = { x: pos.x+insetX, y: pos.y+insetY, w: pos.w-insetX*2, h: pos.h-insetY*2 };
+        slide.addShape('diamond', {
+          x: dpos.x, y: dpos.y, w: dpos.w, h: dpos.h,
+          fill: { color: 'FFFFFF' },
+          line: { color: '222222', width: 1.5 }
+        });
+        slide.addText(it.text, { x: dpos.x, y: dpos.y, w: dpos.w, h: dpos.h, align:'center', valign:'middle', fontSize: wordSize, bold:true, color:'222222', fontFace:'Segoe UI' });
+        continue;
+      }
+      const iconSrc = TYPE[it.cat] && TYPE[it.cat].iconSrc;
+      const iconUri = iconSrc ? iconData[iconSrc] : null;
+      if(iconUri){
+        const iconSize = Math.min(pos.w*0.34, pos.h*0.34);
+        slide.addImage({ data: iconUri, x: pos.x + (pos.w-iconSize)/2, y: pos.y + pos.h*0.08, w: iconSize, h: iconSize });
+        const textY = pos.y + pos.h*0.08 + iconSize;
+        const runs = catLabel
+          ? [ { text: catLabel + '\n', options:{ fontSize:labelSize, bold:true, color:textColor } },
+              { text: it.text, options:{ fontSize:wordSize, bold:true, color:textColor } } ]
+          : [ { text: it.text, options:{ fontSize:wordSize, bold:true, color:textColor } } ];
+        slide.addText(runs, { x: pos.x, y: textY, w: pos.w, h: pos.y+pos.h-textY, align:'center', valign:'top', fontFace:'Segoe UI' });
+        continue;
+      }
+      const runs = catLabel
+        ? [ { text: catLabel + '\n', options:{ fontSize:labelSize, bold:true, color:textColor } },
+            { text: it.text, options:{ fontSize:wordSize, bold:true, color:textColor } } ]
+        : [ { text: it.text, options:{ fontSize:wordSize, bold:true, color:textColor } } ];
+      slide.addText(runs, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, align:'center', valign:'middle', fontFace:'Segoe UI' });
+    }
+    if(reveal === cleanItems.length){
+      // A bold black dot after the last block is the source document's own full-stop marker
+      // — only for the year-group builder, whose curriculum pattern text never carries its
+      // own trailing punctuation. Free-write/saved sentences (opts.autoPunct===false) use
+      // whatever punctuation the teacher actually typed, so this stays off for those —
+      // otherwise a typed "." plus this dot renders as two full stops.
+      if(opts.autoPunct !== false){
+        const lastPos = positions[cleanItems.length-1];
+        const dotSize = 0.18;
+        slide.addShape('ellipse', {
+          x: lastPos.x + lastPos.w + 0.06,
+          y: lastPos.y + lastPos.h - dotSize - 0.1,
+          w: dotSize, h: dotSize,
+          fill: { color: '222222' },
+          line: { color: '222222', width: 0 }
+        });
+      }
+      const sentence = assembleSentenceText(cleanItems);
+      const lastRowBottom = Math.max(...positions.map(p=>p.y+p.h));
+      slide.addText(sentence, {
+        x:0.6, y: lastRowBottom + 0.45, w:12.13, h:1,
+        fontSize: ksFont ? (opts.ks==='ks1' ? 32 : 26) : 24,
+        bold: !ksFont, color:'0A0101', align:'center', fontFace: ksFont || 'Segoe UI'
+      });
+    }
+  }
+
+  pptx.writeFile({ fileName: (opts.fileName || 'sentence') + '.pptx' });
+}
+
+function slugify(str){
+  return (str||'sentence').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,60) || 'sentence';
+}
+
+/* ---------- Present mode: full-screen, click/tap-to-reveal ---------- */
+const presentState = { playlist:[], index:0, cleanItems:[], revealed:0, keyHandler:null, fullstopEl:null };
+
+// Presents a single sentence — unchanged behaviour, now just a one-entry playlist.
+// autoPunct: whether to draw the source document's own bold-dot full-stop marker after the
+// last block. True for the year-group builder, whose curriculum pattern text never includes
+// its own trailing punctuation. False for free-write/saved sentences, where the teacher's own
+// typed sentence — full stop, exclamation mark, or nothing at all — is what should show,
+// rather than the tool silently adding a second, possibly-duplicate one of its own.
+function openPresentMode(items, title, ks, autoPunct){
+  openPresentPlaylist([{ items, title, ks, autoPunct }]);
+}
+
+// Presents one or more sentences back to back in one continuous full-screen session —
+// once a sentence is fully revealed, the next click loads straight into the next entry's
+// first block instead of requiring Present Mode to be closed and reopened. Used for both
+// the single-sentence case (entries.length===1, where the title/step text look exactly as
+// before) and the sentence bank's "Present all".
+function openPresentPlaylist(playlist){
+  const entries = playlist
+    .map(e => ({ items: e.items.filter(it => it.text && it.text.trim()), title: e.title, ks: e.ks, autoPunct: e.autoPunct !== false }))
+    .filter(e => e.items.length);
+  if(!entries.length){ alert('Nothing to present yet — build a sentence first.'); return; }
+
+  const overlay = document.getElementById('presentOverlay');
+  const row = document.getElementById('presentRow');
+  const titleEl = document.getElementById('presentTitle');
+  const sentenceEl = document.getElementById('presentSentence');
+  const stepEl = document.getElementById('presentStep');
+
+  presentState.playlist = entries;
+
+  function loadEntry(idx){
+    presentState.index = idx;
+    const entry = entries[idx];
+    presentState.cleanItems = entry.items;
+    presentState.revealed = 0;
+
+    titleEl.textContent = entries.length > 1
+      ? `Sentence ${idx+1} of ${entries.length}` + (entry.title ? ` — ${entry.title}` : '')
+      : (entry.title || '');
+    row.innerHTML = '';
+    sentenceEl.classList.remove('visible');
+    sentenceEl.textContent = assembleSentenceText(entry.items);
+    // Key Stage handwriting font for the written sentence line only — see KS_FONT_CSS.
+    // Neither font has a true bold face, so it's set unbolded rather than a synthetic bold.
+    const ksFont = KS_FONT_CSS[entry.ks];
+    sentenceEl.style.fontFamily = ksFont ? `${ksFont}, 'Segoe UI', sans-serif` : '';
+    sentenceEl.style.fontWeight = ksFont ? '400' : '';
+    sentenceEl.style.fontSize = entry.ks === 'ks1' ? '3.4vw' : '';
+
+    entry.items.forEach(it=>{
+      const def = TYPE[it.cat] || TYPE.lit;
+      const hasComma = /,$/.test(it.text);
+      const displayText = hasComma ? it.text.slice(0, -1) : it.text;
+      // Every token gets a wrapper — this is what the reveal animation now targets — so the
+      // optional Subject/Verb/Object annotation can sit below the coloured chip/lit block
+      // (outside it) while still fading in and out together with it.
+      const token = document.createElement('div');
+      token.className = 'present-token';
+      if(it.cat === 'lit'){
+        const chip = document.createElement('div');
+        chip.className = 'present-lit';
+        chip.textContent = displayText;
+        token.appendChild(chip);
+        token.appendChild(buildGrammarTermEl('lit'));
+        row.appendChild(token);
+        return;
+      }
+      const chip = document.createElement('div');
+      chip.className = 'present-chip' + (def.diamond ? ' aux-box' : '');
+      chip.style.background = def.bg;
+      chip.style.color = def.fg;
+      if(def.border) chip.style.border = def.border;
+
+      if(def.diamond){
+        const diamond = document.createElement('div');
+        diamond.className = 'aux-diamond';
+        const word = document.createElement('div');
+        word.className = 'p-word';
+        word.textContent = displayText;
+        diamond.appendChild(word);
+        chip.appendChild(diamond);
+      } else {
+        const icoEl = makeIconEl(def, it.cat);
+        if(icoEl){
+          const ico = document.createElement('div');
+          ico.className = 'p-icon';
+          ico.appendChild(icoEl);
+          chip.appendChild(ico);
+        }
+        const label = document.createElement('div');
+        label.className = 'p-label';
+        label.textContent = categoryDisplayName(it.cat) || '';
+        chip.appendChild(label);
+        const word = document.createElement('div');
+        word.className = 'p-word';
+        word.textContent = displayText;
+        chip.appendChild(word);
+      }
+      if(hasComma){
+        const comma = document.createElement('div');
+        comma.className = 'p-comma';
+        chip.appendChild(comma);
+      }
+      token.appendChild(chip);
+      token.appendChild(buildGrammarTermEl(it.cat));
+      row.appendChild(token);
+    });
+
+    if(entry.autoPunct){
+      const presentFullstop = document.createElement('div');
+      presentFullstop.className = 'present-fullstop';
+      row.appendChild(presentFullstop);
+      presentState.fullstopEl = presentFullstop;
+    } else {
+      presentState.fullstopEl = null;
+    }
+  }
+
+  function render(){
+    const chips = row.children;
+    for(let i=0; i<chips.length-(presentState.fullstopEl?1:0); i++){
+      chips[i].classList.toggle('visible', i < presentState.revealed);
+    }
+    const showSentence = presentState.revealed > presentState.cleanItems.length;
+    sentenceEl.classList.toggle('visible', showSentence);
+    if(presentState.fullstopEl) presentState.fullstopEl.classList.toggle('visible', showSentence);
+    const shown = Math.min(presentState.revealed, presentState.cleanItems.length);
+    const blockStep = showSentence
+      ? `${presentState.cleanItems.length} / ${presentState.cleanItems.length} · sentence`
+      : `${shown} / ${presentState.cleanItems.length}`;
+    stepEl.textContent = entries.length > 1
+      ? `Sentence ${presentState.index+1}/${entries.length} · ${blockStep}`
+      : blockStep;
+  }
+
+  function advance(){
+    const maxRevealed = presentState.cleanItems.length + 1;
+    if(presentState.revealed < maxRevealed){
+      presentState.revealed++;
+      render();
+    } else if(presentState.index < entries.length - 1){
+      loadEntry(presentState.index + 1);
+      render();
+    }
+  }
+  function back(){
+    if(presentState.revealed > 0){
+      presentState.revealed--;
+      render();
+    } else if(presentState.index > 0){
+      loadEntry(presentState.index - 1);
+      presentState.revealed = presentState.cleanItems.length + 1;
+      render();
+    }
+  }
+  function close(){
+    overlay.classList.remove('show');
+    if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    if(presentState.keyHandler) document.removeEventListener('keydown', presentState.keyHandler);
+    overlay.removeEventListener('click', onOverlayClick);
+    document.getElementById('presentClose').removeEventListener('click', onCloseClick);
+  }
+  function onOverlayClick(e){
+    if(e.target.id === 'presentClose' || e.target.closest('.present-toggle')) return;
+    advance();
+  }
+  function onCloseClick(e){ e.stopPropagation(); close(); }
+  function onKey(e){
+    if(e.key==='ArrowRight' || e.key===' '){ e.preventDefault(); advance(); }
+    else if(e.key==='ArrowLeft' || e.key==='Backspace'){ e.preventDefault(); back(); }
+    else if(e.key==='Escape'){ close(); }
+  }
+
+  presentState.keyHandler = onKey;
+  document.addEventListener('keydown', onKey);
+  overlay.addEventListener('click', onOverlayClick);
+  document.getElementById('presentClose').addEventListener('click', onCloseClick);
+
+  loadEntry(0);
+  render();
+  overlay.classList.add('show');
+  if(overlay.requestFullscreen){ overlay.requestFullscreen().catch(()=>{}); }
+}
+
+/* ---------- Sentence assembly ---------- */
+function buildCard(structure, sIdx, yearId){
+  const ks = ksForYear(yearId);
+  const card = document.createElement('div');
+  card.className = 'structure-card';
+
+  const h3 = document.createElement('h3');
+  h3.textContent = structure.title;
+  card.appendChild(h3);
+
+  const note = document.createElement('p');
+  note.className = 'structure-note';
+  note.innerHTML = structure.note;
+  card.appendChild(note);
+
+  const row = document.createElement('div');
+  row.className = 'chip-row';
+
+  const values = {};
+
+  structure.pattern.forEach((tok, tIdx)=>{
+    if(tok.type === 'comma'){
+      const c = document.createElement('div');
+      c.className = 'comma-mark';
+      row.appendChild(c);
+      return;
+    }
+    if(tok.type === 'lit'){
+      const litWrap = document.createElement('div');
+      litWrap.className = 'slot';
+      const spacer = document.createElement('div');
+      spacer.className = 'slot-label';
+      spacer.innerHTML = '&nbsp;';
+      litWrap.appendChild(spacer);
+      const b = document.createElement('div');
+      b.className = 'lit-badge';
+      b.textContent = tok.text;
+      litWrap.appendChild(b);
+      litWrap.appendChild(buildGrammarTermEl('lit'));
+      row.appendChild(litWrap);
+      return;
+    }
+
+    const key = 's'+tIdx;
+    values[key] = tok.default;
+
+    const def = TYPE[tok.type];
+    const wrap = document.createElement('div');
+    wrap.className = 'slot';
+
+    const label = document.createElement('div');
+    label.className = 'slot-label';
+    // "who" always shows its plain word here now — the formal "subject" term lives in the
+    // separate, optional annotation below the block instead of being baked into this label.
+    label.textContent = def.label || '';
+    wrap.appendChild(label);
+
+    const box = document.createElement('div');
+    box.className = 'slot-box' + (def.diamond ? ' aux-box' : '');
+    box.style.background = def.bg;
+    box.style.color = def.fg;
+    if(def.border) box.style.border = def.border;
+
+    // Same icon-row height reservation as the free-write panel below — see its comment.
+    if(!def.diamond){
+      const boxIcoEl = makeIconEl(def, tok.type);
+      const boxIco = document.createElement('div');
+      boxIco.className = 'word-ico';
+      if(boxIcoEl) boxIco.appendChild(boxIcoEl);
+      box.appendChild(boxIco);
+    }
+
+    let field;
+    if(tok.options){
+      field = document.createElement('select');
+      tok.options.forEach(opt=>{
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if(opt===tok.default) o.selected = true;
+        field.appendChild(o);
+      });
+      field.addEventListener('change', ()=>{ values[key]=field.value; render(); });
+    } else {
+      field = document.createElement('input');
+      field.type = 'text';
+      field.value = tok.default;
+      field.placeholder = PLACEHOLDER[tok.type] || '';
+      field.autocomplete = 'off';
+      field.autocapitalize = 'off';
+      field.spellcheck = false;
+      field.addEventListener('input', ()=>{ values[key]=field.value; render(); });
+    }
+    if(def.diamond){
+      const diamond = document.createElement('div');
+      diamond.className = 'aux-diamond';
+      diamond.appendChild(field);
+      box.appendChild(diamond);
+    } else {
+      box.appendChild(field);
+    }
+    wrap.appendChild(box);
+    wrap.appendChild(buildGrammarTermEl(tok.type));
+    row.appendChild(wrap);
+  });
+
+  const fullstop1 = document.createElement('div');
+  fullstop1.className = 'fullstop-mark';
+  row.appendChild(fullstop1);
+
+  card.appendChild(row);
+
+  const preview = document.createElement('div');
+  preview.className = 'preview';
+  card.appendChild(preview);
+
+  function currentItems(){
+    const out = [];
+    structure.pattern.forEach((tok, tIdx)=>{
+      if(tok.type==='comma'){
+        if(out.length) out[out.length-1].text += ',';
+        return;
+      }
+      if(tok.type==='lit'){ out.push({cat:'lit', text: tok.text}); return; }
+      const v = (values['s'+tIdx] || '').trim();
+      if(v) out.push({cat: tok.type, text: v});
+    });
+    return out;
+  }
+
+  function render(){
+    const sentence = assembleSentenceText(currentItems());
+    if(sentence){
+      preview.innerHTML = sentence;
+    } else {
+      preview.innerHTML = '<span class="ph">Type words into the blocks above to build your sentence…</span>';
+    }
+  }
+  render();
+
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'btn-small';
+  toggleBtn.textContent = 'Show model example';
+  const modelBox = document.createElement('div');
+  modelBox.className = 'model-examples';
+  structure.examples.forEach(ex=>{
+    const d = document.createElement('div');
+    d.textContent = ex;
+    modelBox.appendChild(d);
+  });
+  toggleBtn.addEventListener('click', ()=>{
+    modelBox.classList.toggle('show');
+    toggleBtn.textContent = modelBox.classList.contains('show') ? 'Hide model example' : 'Show model example';
+  });
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn-small';
+  resetBtn.textContent = 'Reset';
+  resetBtn.addEventListener('click', ()=>{
+    structure.pattern.forEach((tok,tIdx)=>{
+      if(tok.type==='comma'||tok.type==='lit') return;
+      values['s'+tIdx] = tok.default;
+    });
+    const fields = row.querySelectorAll('.slot-box input, .slot-box select');
+    let fieldIdx = 0;
+    structure.pattern.forEach((tok)=>{
+      if(tok.type==='comma'||tok.type==='lit') return;
+      const f = fields[fieldIdx];
+      if(f) f.value = tok.default;
+      fieldIdx++;
+    });
+    render();
+  });
+
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'btn-small';
+  exportBtn.textContent = '📥 Export to PowerPoint';
+  exportBtn.addEventListener('click', ()=>{
+    exportItemsToPptx(currentItems(), { title: structure.title, fileName: slugify(structure.title), ks, yearId });
+  });
+
+  const presentBtn = document.createElement('button');
+  presentBtn.className = 'btn-small';
+  presentBtn.textContent = '🎬 Present';
+  presentBtn.addEventListener('click', ()=>{
+    openPresentMode(currentItems(), structure.title, ks);
+  });
+
+  // Sentence Builder link: open Free build with this structure as the pupils' target
+  const tryBtn = document.createElement('a');
+  tryBtn.className = 'btn-small try-link';
+  tryBtn.textContent = '🧱 Let pupils try it';
+  tryBtn.href = '../index.html?go=free&target=' + yearId + '.' + sIdx;
+  tryBtn.title = 'Opens Free build with this structure as a target: pupils pick a picture and build a sentence like this';
+
+  actions.appendChild(toggleBtn);
+  actions.appendChild(resetBtn);
+  actions.appendChild(presentBtn);
+  actions.appendChild(tryBtn);
+  actions.appendChild(exportBtn);
+  card.appendChild(actions);
+  card.appendChild(modelBox);
+
+  return card;
+}
+
+// autoTagSentence (the colour-coder) now lives in ../tagger.js, shared with Check my writing.
+
+function renderFreeWriteChips(container, items, yearId){
+  container.innerHTML = '';
+  if(!items.length){
+    const p = document.createElement('p');
+    p.className = 'freewrite-empty';
+    p.textContent = 'Type a sentence above and press "Colour it!" to see it here.';
+    container.appendChild(p);
+    return;
+  }
+  const row = document.createElement('div');
+  row.className = 'chip-row';
+
+  items.forEach((item, idx)=>{
+    const def = TYPE[item.cat];
+    const hasComma = /,$/.test(item.text);
+    const displayText = hasComma ? item.text.slice(0, -1) : item.text;
+    const wrap = document.createElement('div');
+    wrap.className = 'slot';
+
+    const label = document.createElement('div');
+    label.className = 'slot-label';
+    const sel = document.createElement('select');
+    CATEGORY_ORDER.forEach(cat=>{
+      const o = document.createElement('option');
+      o.value = cat;
+      o.textContent = (TYPE[cat].icon ? TYPE[cat].icon+' ' : '') + categoryDisplayName(cat);
+      if(cat===item.cat) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', ()=>{
+      items[idx].cat = sel.value;
+      renderFreeWriteChips(container, items);
+    });
+    label.appendChild(sel);
+    wrap.appendChild(label);
+
+    const box = document.createElement('div');
+    box.className = 'slot-box' + (def.diamond ? ' aux-box' : '');
+    box.style.background = def.bg;
+    box.style.color = def.fg;
+    if(def.border) box.style.border = def.border;
+
+    const content = def.diamond ? document.createElement('div') : box;
+    if(def.diamond) content.className = 'aux-diamond';
+
+    if(def.diamond){
+      const auxSel = document.createElement('select');
+      const dtLower = displayText.toLowerCase();
+      const auxOptions = AUX_OPTIONS.some(o=>o.toLowerCase()===dtLower) ? AUX_OPTIONS : [displayText, ...AUX_OPTIONS];
+      auxOptions.forEach(opt=>{
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if(opt.toLowerCase()===displayText.toLowerCase()) o.selected = true;
+        auxSel.appendChild(o);
+      });
+      auxSel.addEventListener('change', ()=>{
+        items[idx].text = auxSel.value + (hasComma ? ',' : '');
+        renderFreeWriteChips(container, items);
+      });
+      content.appendChild(auxSel);
+    } else {
+      // Always reserve the icon row's height, even for categories like "lit" that have no
+      // icon (def.icon === '') — appending it only when there's an actual icon to show, as
+      // this used to, left icon-less chips ("With", "like", "by"...) measurably shorter than
+      // every sibling chip in the same row (33px vs 60px), the same box-height mismatch this
+      // tool has already had to fix for the aux diamond and the grammar-term row.
+      const icoEl = makeIconEl(def, item.cat);
+      const ico = document.createElement('div');
+      ico.className = 'word-ico';
+      if(icoEl) ico.appendChild(icoEl);
+      content.appendChild(ico);
+      const txt = document.createElement('div');
+      txt.className = 'word-text';
+      txt.textContent = displayText;
+      content.appendChild(txt);
+    }
+    if(def.diamond) box.appendChild(content);
+
+    wrap.appendChild(box);
+    wrap.appendChild(buildGrammarTermEl(item.cat));
+    row.appendChild(wrap);
+
+    if(hasComma){
+      const comma = document.createElement('div');
+      comma.className = 'comma-mark';
+      row.appendChild(comma);
+    }
+  });
+
+  // No auto-added full-stop mark here — free-write shows exactly the punctuation the
+  // teacher typed (or didn't), same reasoning as Present mode/PowerPoint below.
+  container.appendChild(row);
+
+  const ks = ksForYear(yearId);
+
+  const presentBtn = document.createElement('button');
+  presentBtn.className = 'btn-small';
+  presentBtn.style.marginTop = '10px';
+  presentBtn.textContent = '🎬 Present';
+  presentBtn.addEventListener('click', ()=>{
+    openPresentMode(items, 'My sentence', ks, false);
+  });
+  container.appendChild(presentBtn);
+
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'btn-small';
+  exportBtn.style.marginTop = '10px';
+  exportBtn.style.marginLeft = '8px';
+  exportBtn.textContent = '📥 Export to PowerPoint';
+  exportBtn.addEventListener('click', ()=>{
+    exportItemsToPptx(items, { title: 'My sentence', fileName: slugify(assembleSentenceText(items)), ks, yearId, autoPunct:false });
+  });
+  container.appendChild(exportBtn);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn-small';
+  saveBtn.style.marginTop = '10px';
+  saveBtn.style.marginLeft = '8px';
+  saveBtn.textContent = '💾 Save to my sentences';
+  saveBtn.addEventListener('click', ()=>{
+    addToSentenceBank(items, yearId);
+    const original = saveBtn.textContent;
+    saveBtn.textContent = '✓ Saved — see the My sentences tab';
+    saveBtn.disabled = true;
+    setTimeout(()=>{ saveBtn.textContent = original; saveBtn.disabled = false; }, 1800);
+  });
+  container.appendChild(saveBtn);
+}
+
+function buildFreeWritePanel(){
+  const wrap = document.createElement('div');
+  wrap.className = 'freewrite-box';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = 'Write your own sentence';
+  h2.style.margin = '0 0 8px';
+  h2.style.fontSize = '1.2rem';
+  wrap.appendChild(h2);
+
+  const p = document.createElement('p');
+  p.style.fontSize = '0.85rem';
+  p.style.color = 'var(--muted)';
+  p.style.margin = '0 0 10px';
+  p.textContent = "Type any sentence and it will be coloured for you automatically. It's a best guess — tap any coloured block's small dropdown to fix its colour if it's wrong.";
+  wrap.appendChild(p);
+
+  // The sentence itself can be any structure regardless of year group — a teacher might
+  // want a Year 1-style simple sentence shown to a Year 6 class. This only picks which
+  // Key Stage handwriting font the PowerPoint/Present sentence line uses, same as picking
+  // a year-group tab does for the structured builder.
+  const yearRow = document.createElement('div');
+  yearRow.className = 'freewrite-year-row';
+  const yearLabel = document.createElement('label');
+  yearLabel.className = 'freewrite-year-label';
+  yearLabel.textContent = 'Year group (sets the handwriting font for Present/PowerPoint):';
+  const yearSelect = document.createElement('select');
+  yearSelect.className = 'freewrite-year-select';
+  YEARS.forEach(y=>{
+    const o = document.createElement('option');
+    o.value = y.id; o.textContent = y.label;
+    yearSelect.appendChild(o);
+  });
+  yearLabel.appendChild(yearSelect);
+  yearRow.appendChild(yearLabel);
+  wrap.appendChild(yearRow);
+  yearSelect.addEventListener('change', ()=>{
+    if(textarea.value.trim()) run();
+  });
+
+  const textarea = document.createElement('textarea');
+  textarea.placeholder = 'e.g. The child ate the delicious lolly quickly because they were hungry.';
+  wrap.appendChild(textarea);
+
+  const actions = document.createElement('div');
+  actions.className = 'freewrite-actions';
+  const goBtn = document.createElement('button');
+  goBtn.className = 'btn-main';
+  goBtn.textContent = 'Colour it!';
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'btn-small';
+  clearBtn.textContent = 'Clear';
+  actions.appendChild(goBtn);
+  actions.appendChild(clearBtn);
+  wrap.appendChild(actions);
+
+  const output = document.createElement('div');
+  output.className = 'freewrite-output';
+  wrap.appendChild(output);
+  renderFreeWriteChips(output, []);
+
+  function run(){
+    const items = autoTagSentence(textarea.value);
+    renderFreeWriteChips(output, items, yearSelect.value);
+  }
+  goBtn.addEventListener('click', run);
+  textarea.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); run(); }
+  });
+  clearBtn.addEventListener('click', ()=>{
+    textarea.value = '';
+    renderFreeWriteChips(output, []);
+  });
+
+  const hint = document.createElement('div');
+  hint.className = 'freewrite-hint';
+  hint.innerHTML = "<strong>Tip:</strong> works best on the kind of sentences practised in the year-group tabs above — a subject, a verb, and simple describing/where/when/how phrases, joined with conjunctions like <em>and, but, because, when, although</em>.";
+  wrap.appendChild(hint);
+
+  return wrap;
+}
+
+function buildBankPanel(){
+  const wrap = document.createElement('div');
+  wrap.className = 'freewrite-box';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = 'My saved sentences';
+  h2.style.margin = '0 0 8px';
+  h2.style.fontSize = '1.2rem';
+  wrap.appendChild(h2);
+
+  const p = document.createElement('p');
+  p.style.fontSize = '0.85rem';
+  p.style.color = 'var(--muted)';
+  p.style.margin = '0 0 10px';
+  p.textContent = "Sentences you save from the ✏️ My sentence tab land here — build up a set ahead of a lesson, then present them all in one go, straight through from one to the next, without closing and reopening each time.";
+  wrap.appendChild(p);
+
+  if(!sentenceBank.length){
+    const empty = document.createElement('p');
+    empty.className = 'freewrite-empty';
+    empty.textContent = 'Nothing saved yet — colour a sentence in ✏️ My sentence, then tap "💾 Save to my sentences".';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const presentAllBtn = document.createElement('button');
+  presentAllBtn.className = 'btn-main';
+  presentAllBtn.textContent = `🎬 Present all (${sentenceBank.length})`;
+  presentAllBtn.style.marginBottom = '14px';
+  presentAllBtn.addEventListener('click', ()=>{
+    openPresentPlaylist(sentenceBank.map((e,i)=>({ items:e.items, title:`Saved sentence ${i+1}`, ks:ksForYear(e.yearId), autoPunct:false })));
+  });
+  wrap.appendChild(presentAllBtn);
+
+  const list = document.createElement('div');
+  list.className = 'bank-list';
+
+  sentenceBank.forEach((entry, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'bank-item';
+
+    const yearInfo = YEARS.find(y=>y.id===entry.yearId);
+    if(yearInfo){
+      const yearTag = document.createElement('div');
+      yearTag.className = 'bank-item-year';
+      yearTag.textContent = yearInfo.label;
+      row.appendChild(yearTag);
+    }
+
+    const preview = document.createElement('div');
+    preview.className = 'bank-item-preview';
+    entry.items.forEach(it=>{
+      const def = TYPE[it.cat] || TYPE.lit;
+      const hasComma = /,$/.test(it.text);
+      const displayText = hasComma ? it.text.slice(0, -1) : it.text;
+      const pill = document.createElement('span');
+      pill.className = 'bank-pill';
+      pill.style.background = def.bg;
+      pill.style.color = def.fg;
+      if(def.border) pill.style.border = def.border;
+      pill.textContent = displayText;
+      preview.appendChild(pill);
+    });
+    row.appendChild(preview);
+
+    const actions = document.createElement('div');
+    actions.className = 'bank-item-actions';
+
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn-small';
+    upBtn.title = 'Move earlier';
+    upBtn.textContent = '↑';
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener('click', ()=>{ moveInSentenceBank(entry.id, -1); selectBank(); });
+    actions.appendChild(upBtn);
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'btn-small';
+    downBtn.title = 'Move later';
+    downBtn.textContent = '↓';
+    downBtn.disabled = idx === sentenceBank.length-1;
+    downBtn.addEventListener('click', ()=>{ moveInSentenceBank(entry.id, 1); selectBank(); });
+    actions.appendChild(downBtn);
+
+    const presentBtn = document.createElement('button');
+    presentBtn.className = 'btn-small';
+    presentBtn.textContent = '🎬 Present';
+    presentBtn.addEventListener('click', ()=>{
+      openPresentMode(entry.items, `Saved sentence ${idx+1}`, ksForYear(entry.yearId), false);
+    });
+    actions.appendChild(presentBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-small';
+    delBtn.textContent = '🗑 Delete';
+    delBtn.addEventListener('click', ()=>{
+      if(confirm('Remove this saved sentence?')){
+        removeFromSentenceBank(entry.id);
+        selectBank();
+      }
+    });
+    actions.appendChild(delBtn);
+
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function selectBank(){
+  document.querySelectorAll('.year-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.id==='bank');
+  });
+  const content = document.getElementById('yearContent');
+  content.innerHTML = '';
+  content.appendChild(buildBankPanel());
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function selectFreeWrite(){
+  document.querySelectorAll('.year-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.id==='free');
+  });
+  const content = document.getElementById('yearContent');
+  content.innerHTML = '';
+  content.appendChild(buildFreeWritePanel());
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function selectYear(id){
+  document.querySelectorAll('.year-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.id===id);
+  });
+  const y = YEARS.find(x=>x.id===id);
+  const content = document.getElementById('yearContent');
+  content.innerHTML = '';
+
+  const introEl = document.createElement('div');
+  introEl.className = 'year-intro';
+  introEl.innerHTML = `<h2>${y.label}</h2><p>${y.intro}</p>`;
+  content.appendChild(introEl);
+
+  y.structures.forEach((structure, i)=>{
+    content.appendChild(buildCard(structure, i, y.id));
+  });
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+selectYear(YEARS[0].id);
+
+/* ---------- Sentence Builder: "Show on the board" from the pupil side ---------- */
+(function(){
+  const m = location.hash.match(/^#present=(.+)$/);
+  if (!m) return;
+  try {
+    const entries = JSON.parse(decodeURIComponent(m[1]));
+    history.replaceState(null, '', location.pathname);
+    openPresentPlaylist(entries.map(e => ({items: e.items, title: e.title, ks: ksForYear(null), autoPunct: false})));
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
