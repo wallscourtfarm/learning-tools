@@ -35,6 +35,7 @@ TOPICS.find(t => t.id === 'science').pictures.push(
     where:[
       {id:'onto', t:'onto the foil', who:['girl'], doing:['pours']},
       {id:'cup', t:'into the cup', doing:['drips']},
+      {id:'over', t:'over the cup', who:['foil','paper'], doing:['waterproof','soggy']},
       {id:'table', t:'on the table', who:['girl','boy','teddy'], doing:['tests','looks','sits']},
       {id:'lens', t:'through a hand lens', who:['boy'], doing:['looks']},
       {id:'window', t:'by the rainy window', who:['girl','boy','teddy'], doing:['tests','looks','sits','wears']},
@@ -578,7 +579,7 @@ TOPICS.find(t => t.id === 'geography').pictures.push(
     doing:[
       {id:'stands', t:'stands', needs:'none', who:['castle','girl']},
       {id:'plays', t:'plays', needs:'what', who:['piper']},
-      {id:'wears', t:'wears', needs:'what', who:['piper']},
+      {id:'wears', t:'wears', needs:'what', who:['piper','girl','grandma']},
       {id:'looks', t:'looks up at', needs:'what', who:['girl','grandma']},
       {id:'listens', t:'listens to', needs:'what', who:['girl','grandma']},
       {id:'flies', t:'flies', needs:'none', who:['flag']},
@@ -587,7 +588,9 @@ TOPICS.find(t => t.id === 'geography').pictures.push(
     what:[
       {id:'bagpipes', t:'the bagpipes', doing:['plays','listens']},
       {id:'tune', t:'a Scottish tune', doing:['plays','listens']},
-      {id:'kilt', t:'a tartan kilt', doing:['wears']},
+      {id:'kilt', t:'a tartan kilt', doing:['wears'], who:['piper']},
+      {id:'cardigan', t:'a blue cardigan', doing:['wears'], who:['girl']},
+      {id:'shawl', t:'a colourful shawl', doing:['wears'], who:['grandma']},
       {id:'castle', t:'the castle', doing:['looks']},
       {id:'piper', t:'the piper', doing:['looks','listens']},
       {id:'flag', t:'the flag', doing:['looks']}

@@ -38,7 +38,9 @@ const TOPICS = [
     where:[
       {id:'station', t:'in the space station', who:['astro','apple','bottle']},
       {id:'window', t:'by the window', who:['astro','apple','bottle']},
-      {id:'above', t:'above the Earth', who:['astro','apple','bottle']}
+      {id:'above', t:'above the Earth', who:['astro','apple','bottle']},
+      {id:'space', t:'in space', who:['earth']},
+      {id:'below', t:'below the window', who:['earth']}
     ],
     describe:[
       {id:'happy', t:'happy', who:['astro']},
@@ -84,7 +86,7 @@ const TOPICS = [
     ],
     where:[
       {id:'sky', t:'into the sky', doing:['blasts','rises']},
-      {id:'pad', t:'from the launch pad', doing:['blasts','rises']},
+      {id:'pad', t:'from the launch pad', doing:['blasts','rises','roars']},
       {id:'fence', t:'behind the fence', who:['crowd','boy']},
       {id:'clouds', t:'above the clouds', doing:['rises']}
     ],
@@ -431,7 +433,8 @@ const TOPICS = [
       {id:'across', t:'across the sea', doing:['shines','sails']},
       {id:'towards', t:'towards the rocks', doing:['sails']},
       {id:'sky', t:'in the sky', who:['lightning']},
-      {id:'against', t:'against the rocks', doing:['crashes']}
+      {id:'against', t:'against the rocks', doing:['crashes']},
+      {id:'waves', t:'on the huge waves', who:['boat']}
     ],
     describe:[
       {id:'tall', t:'tall', who:['lighthouse']},
@@ -888,7 +891,8 @@ const TOPICS = [
       {id:'beach', t:'on the beach', doing:['lands']},
       {id:'village', t:'towards the village', doing:['sails','splashes']},
       {id:'front', t:'at the front of the ship', who:['chief']},
-      {id:'wind', t:'in the wind', who:['sail']}
+      {id:'wind', t:'in the wind', who:['sail']},
+      {id:'shallows', t:'in the shallow water', who:['warrior']}
     ],
     describe:[
       {id:'fierce', t:'fierce', who:['warrior','chief']},

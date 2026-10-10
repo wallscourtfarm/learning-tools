@@ -280,7 +280,7 @@ TOPICS.push({
       {id:'coral', t:'over the coral', doing:['glides','swims','darts','ripples']},
       {id:'rocks', t:'among the rocks', who:['octopus']},
       {id:'below', t:'below the surface', who:['turtle','diver','shoal','octopus']},
-      {id:'water', t:'through the blue water', doing:['glides','swims','darts','ripples']},
+      {id:'water', t:'through the blue water', doing:['glides','swims','darts','ripples','sparkles']},
       {id:'past', t:'past the diver', doing:['glides','swims','darts'], who:['turtle','shoal']}
     ],
     describe:[

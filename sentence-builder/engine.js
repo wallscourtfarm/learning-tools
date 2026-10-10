@@ -136,24 +136,26 @@ function textOf(tokens){
 // The sense check. Returns the first problem as {slot, msg}, or null. Never says "wrong": it
 // asks the child to listen again and points at the block to change. stp = the child's step.
 function check(st, scope, stp){
-  const who = st.who, doing = st.doing;
+  const who = st.who;
+  // quote the doing word as the child built it ("is splashing", not "splashes")
+  const doing = st.doing ? {...st.doing, t:(st.aux ? st.aux + ' ' : '') + doingWith(st.doing.t, st.aux)} : null;
   const listen = t => `Listen again: <q>${esc(t)}</q>.`;
-  if (doing && !fits(doing, 'who', who))
+  if (doing && !fits(st.doing, 'who', who))
     return {slot:'doing', msg:`${listen(cap(whoPhrase(st)) + ' ' + doing.t)} Does that make sense? Try a different <b>doing</b> block.`};
-  if (doing && doing.needs === 'what' && !st.what){
+  if (doing && st.doing.needs === 'what' && !st.what){
     if (stp === 1) return {slot:'doing', msg:`<q>${esc(cap(whoPhrase(st)))} ${esc(doing.t)}…</q> ${esc(doing.t)} what? This doing word needs a <b>what</b> after it. Try a doing word that makes sense on its own.`};
     return {slot:'what', msg:`<q>${esc(cap(whoPhrase(st)))} ${esc(doing.t)}…</q> ${esc(doing.t)} what? This doing word needs a <b>what</b>. Add a what block.`};
   }
-  if (doing && doing.needs === 'none' && st.what)
+  if (doing && st.doing.needs === 'none' && st.what)
     return {slot:'what', msg:`${listen(doing.t + ' ' + st.what.t)} Does that go together? Take the <b>what</b> away, or try a different doing block.`};
-  if (st.what && (!fits(st.what, 'doing', doing) || !fits(st.what, 'who', who)))
+  if (st.what && (!fits(st.what, 'doing', st.doing) || !fits(st.what, 'who', who)))
     return {slot:'what', msg:`${listen(cap(whoPhrase(st)) + ' ' + doing.t + ' ' + st.what.t)} Does that go together? Try a different <b>what</b> block.`};
-  if (st.where && (!fits(st.where, 'who', who) || !fits(st.where, 'doing', doing)))
+  if (st.where && (!fits(st.where, 'who', who) || !fits(st.where, 'doing', st.doing)))
     return {slot:'where', msg:`${listen(cap(whoPhrase(st)) + ' ' + doing.t + ' ' + st.where.t)} Does that make sense? Try a different <b>where</b> block.`};
   if (scope === 'all'){
     if (st.describe && !fits(st.describe, 'who', who))
       return {slot:'describe', msg:`${listen(cap(whoPhrase(st)))} Does that word describe it? Try a different <b>describe</b> block.`};
-    if (st.how && (!fits(st.how, 'doing', doing) || !fits(st.how, 'who', who)))
+    if (st.how && (!fits(st.how, 'doing', st.doing) || !fits(st.how, 'who', who)))
       return {slot:'how', msg:`${listen(doing.t + ' ' + st.how.t)} Does that go together? Try a different <b>how</b> block.`};
   }
   return null;
@@ -226,3 +228,36 @@ function wordTiles(st, clause){
   parts(st).forEach(p => p.t.split(' ').forEach(w => out.push({t:w, clause})));
   return out;
 }
+
+/* ---------- what counts as making sense ----------
+ * The word cards record who does what IN THE PICTURE. Taken strictly, that rejects good sentences
+ * ("The dog is splashing in a puddle" when only the girl's card says "splashes"). So, once, at load:
+ *   - a person can do / have / be anywhere any other person in the picture can;
+ *   - an animal can do people's (and other animals') physical actions, and be in their places;
+ *   - things stay strict ("The rocket waves" is still flagged), and so do animal-only actions for
+ *     people ("The girl barks").
+ */
+const ANIMAL_RE = /\b(dog|puppy|cat|kitten|fox|owl|horse|pony|cow|calf|pig|hen|chicken|crab|seagull|gull|parrot|squirrel|mammoth|dragon|snail|ladybird|worm|butterfly|bee|bird|robin|eagle|goat|sheep|lamb|deer|stag|wolf|bear|seal|turtle|tortoise|fish|shoal|frog|froglet|tadpole|toad|hedgehog|monkey|toucan|sloth|jaguar|macaw|elephant|giraffe|zebra|camel|donkey|ox|buffalo|iguana|finch|penguin|swan|heron|duck|mouse|rabbit|beetle|spider|dinosaur|triceratops|pterosaur|octopus|starfish|bison|buzzard|terrier|woodlouse|woodlice|lion|tiger|ant)s?$/i;
+const isAnimal = w => !!w && !w.person && ANIMAL_RE.test(w.t);
+const ANIMAL_OK = new Set('walk run splash jump swim sit stand lie look watch sleep play chase climb dig drink eat hide crouch roll wait shake shiver sniff listen hop crawl rest wander follow paddle dive race stare peep peer explore drift float glide fly wade trot gallop leap'.split(' '));
+function expandPicture(p){
+  const byId = id => p.who.find(w => w.id === id);
+  const people = p.who.filter(w => w.person), animals = p.who.filter(isAnimal);
+  const grow = (card, kind) => {
+    if (!card.who) return;
+    const listed = card.who.map(byId).filter(Boolean);
+    const anyPerson = listed.some(w => w.person), anyAnimal = listed.some(isAnimal);
+    const add = w => { if (!card.who.includes(w.id)) card.who.push(w.id); };
+    if (anyPerson && kind !== 'animalOnly') people.forEach(add);
+    if (kind === 'doing'){
+      if ((anyPerson || anyAnimal) && ANIMAL_OK.has(verbBase(card.t.split(' ')[0]))) animals.forEach(add);
+    } else if (kind === 'describe'){
+      if (anyPerson || anyAnimal) animals.forEach(add);
+    } else if (anyPerson || anyAnimal) animals.forEach(add);
+  };
+  p.doing.forEach(c => { const listed = (c.who || []).map(byId).filter(Boolean);
+    // animal-only actions (barks, moos, hoots) stay with animals
+    if (listed.length && listed.every(isAnimal)) grow(c, 'animalOnly'); else grow(c, 'doing'); });
+  ['what','where','describe','how'].forEach(k => (p[k] || []).forEach(c => grow(c, k)));
+}
+if (typeof TOPICS !== 'undefined') TOPICS.forEach(t => t.pictures.forEach(expandPicture));

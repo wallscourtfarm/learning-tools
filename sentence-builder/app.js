@@ -8,7 +8,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26k';
+const VERSION = '10.10.26l';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -321,8 +321,21 @@ function choose(cat, card){
   }
   if (editing === cat) s[cat] = card;            // replacing a tapped block
   else if (s[cat] && s[cat].id === card.id) s[cat] = null; else s[cat] = card;
+  if (cat === 'doing' || cat === 'who'){
+    // a what / where chosen earlier may not fit any more
+    if (s.what && !(fits(s.what, 'doing', s.doing) && fits(s.what, 'who', s.who))) s.what = null;
+    if (s.where && !(fits(s.where, 'doing', s.doing) && fits(s.where, 'who', s.who))) s.where = null;
+  }
   if (!coreDone()) s.stop = false;
-  changed(); render();
+  changed();
+  misfitDoing();
+  render();
+}
+// Straight away (not at the end), if the doing word isn't happening for this who in the picture.
+function misfitDoing(){
+  if (!s.who || !s.doing || fits(s.doing, 'who', s.who)) return;
+  editing = 'doing'; problemSlot = 'doing';
+  coachMsg = {cls:'think', ic:'👀', html:`Look at the picture: <q>${esc(cap(np(s.who)))} ${esc(s.doing.t)}…</q> Is that happening in the picture? Choose a different <b>doing</b> word.`};
 }
 
 function chooseJoin(id){
@@ -740,6 +753,10 @@ function renderBank(){
   cats.forEach(cat => {
     const q = phase === 'extras' && cat === 'describe' ? `Describe ${esc(np(s.who))}:` : esc(CAT[cat].q(s));
     let list = pic[cat] || [];
+    if (building() && (cat === 'what' || cat === 'where') && s.doing && fits(s.doing, 'who', s.who)){
+      list = list.filter(c => fits(c, 'doing', s.doing) && fits(c, 'who', s.who));
+      if (cat === 'what' && s.doing.needs === 'none') list = [];      // "floats" doesn't take a what
+    }
     if (phase === 'extras' && cat === 'describe' && !s.who.det) list = [];   // no "the" to put it after
     if (!list.length) return;
     const g = cardGroup(b, icon(CAT[cat].icon), q, list.map(card => {
@@ -1403,10 +1420,17 @@ function renderFreeBank(){
     const next = !c.who ? ['who'] : !c.doing ? ['doing'] : ['what','where'];
     next.forEach(cat => {
       let list = pic[cat] || [];
+      if ((cat === 'what' || cat === 'where') && c.doing){
+        list = list.filter(x => fits(x, 'doing', c.doing) && fits(x, 'who', c.who));
+        if (cat === 'what' && c.doing.needs === 'none') list = [];
+      }
+      if (!list.length) return;
       cardGroup(b, icon(CAT[cat].icon), cat === 'who' ? 'Who or what is in the second idea?' : esc(CAT[cat].q(c)) + (cat === 'what' || cat === 'where' ? ' (you can skip this)' : ''),
         list.map(card => wordCard(cat, card, c[cat] && c[cat].id === card.id, () => {
           if (settings.readCards && canSpeak()) say(cat === 'who' ? np(card) : card.t);
-          c[cat] = c[cat] && c[cat].id === card.id ? null : card; if (cat === 'doing') c.aux = null; heard = false; coachMsg = null; render();
+          c[cat] = c[cat] && c[cat].id === card.id ? null : card; if (cat === 'doing') c.aux = null; heard = false; coachMsg = null;
+          if (c.who && c.doing && !fits(c.doing, 'who', c.who)){ coachMsg = {cls:'think', ic:'👀', html:`Look at the picture: <q>${esc(np(c.who))} ${esc(c.doing.t)}…</q> Is that happening in the picture? Choose a different <b>doing</b> word.`}; c.doing = null; }
+          render();
         })));
     });
     if (c.doing) auxGroup(b, c.doing, c.aux, a => { c.aux = c.aux === a ? null : a; heard = false; coachMsg = null; render(); });
