@@ -813,7 +813,7 @@
 </main>
 
 <footer>
-  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 10.10.26r
+  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 10.10.26s
 </footer>
 
 <div class="present-overlay" id="presentOverlay">
@@ -860,8 +860,8 @@
 </script>
 <script src="../lib/pptxgenjs.bundle.js"></script>
 <script src="../lib/wink-pos-tagger.bundle.js"></script>
-<script src="../structures.js?v=10.10.26r"></script>
-<script src="../tagger.js?v=10.10.26r"></script>
+<script src="../structures.js?v=10.10.26s"></script>
+<script src="../tagger.js?v=10.10.26s"></script>
 <script>
 /* ---------- Colour / type definitions ---------- */
 const TYPE = {
@@ -1418,6 +1418,8 @@ function openPresentPlaylist(playlist){
     if(presentState.keyHandler) document.removeEventListener('keydown', presentState.keyHandler);
     overlay.removeEventListener('click', onOverlayClick);
     document.getElementById('presentClose').removeEventListener('click', onCloseClick);
+    // Opened by "Show on the board" from the pupil side: go back to where the child was
+    if (window.sbFromPupil){ window.sbFromPupil = false; parent.postMessage('sb-close-present', '*'); }
   }
   function onOverlayClick(e){
     if(e.target.id === 'presentClose' || e.target.closest('.present-toggle')) return;
@@ -2022,6 +2024,7 @@ selectYear(YEARS[0].id);
   try {
     const entries = JSON.parse(decodeURIComponent(m[1]));
     history.replaceState(null, '', location.pathname);
+    if (window.parent !== window) window.sbFromPupil = true;
     openPresentPlaylist(entries.map(e => ({items: e.items, title: e.title, ks: ksForYear(null), autoPunct: false})));
   } catch(e) {}
 })();

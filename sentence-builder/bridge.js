@@ -1,6 +1,6 @@
 /* Sentence Builder — links between the pupil side and the Teach tab.
  *   showOnBoard(tokens)    any sentence a child builds opens in the Teach tab's Present mode
- *                          (block-by-block reveal, full screen) in a new tab
+ *                          (block-by-block reveal, full screen) over the page; ✕ Close returns
  *   target structures      "Let pupils try it" on a Teach structure opens Free build with that
  *                          structure as a target (?go=free&target=y4.2); a banner shows the
  *                          parts it needs and ticks them off as the child adds them
@@ -39,8 +39,17 @@ function tokensToEntries(tokens, title){
 function showOnBoard(tokens, title){
   const entries = tokensToEntries(tokens, title);
   if (!entries.length) return;
-  window.open('teach/index.html#present=' + encodeURIComponent(JSON.stringify(entries)), '_blank');
+  // Shown over this page (not a new tab), so closing it returns the child to exactly where they were
+  closeBoard();
+  const f = document.createElement('iframe');
+  f.id = 'boardFrame';
+  f.allow = 'fullscreen';
+  f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#fff';
+  f.src = 'teach/index.html#present=' + encodeURIComponent(JSON.stringify(entries));
+  document.body.appendChild(f);
 }
+function closeBoard(){ const f = document.getElementById('boardFrame'); if (f) f.remove(); }
+window.addEventListener('message', e => { if (e.origin === location.origin && e.data === 'sb-close-present') closeBoard(); });
 
 /* ---------- Target structures from the Teach tab ---------- */
 let sbTarget = null;    // "y4.2" = Year 4, structure 3
