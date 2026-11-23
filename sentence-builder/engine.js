@@ -228,6 +228,61 @@ function wordTiles(st, clause){
   return out;
 }
 
+/* ---------- incomplete sentences (Complete it) ----------
+ * A fragment is a sentence with a part taken away, the way children often write them:
+ *   who   "Floats in the space station."        no who
+ *   doing "The astronaut by the window."         no doing word
+ *   what  "The astronaut holds."                 the doing word needs a what
+ *   idea  "In the space station."                only a where: no who and no doing
+ *   join  "Because the rocket blasts off."       a joining idea on its own, no main idea
+ * Returns {miss, clause} (+ join for 'join'). The clause keeps every part, so the missing one
+ * is known and a complete version can be shown. A 'join' fragment's main idea is left as "…":
+ * a random main idea rarely gives a sensible reason ("The candle shines because…").
+ */
+function genFragment(p, kinds){
+  for (let n = 0; n < 300; n++){
+    const miss = rnd(kinds || ['who','doing','what']);
+    if (miss === 'join'){
+      const sub = genClause(p);
+      if (!sub) continue;
+      return {miss, clause:sub, join:rnd(['because','because','when','if'])};
+    }
+    const st = genClause(p);
+    if (!st) continue;
+    if (miss === 'what' && !(st.doing.needs === 'what' && st.what)) continue;
+    if (miss === 'doing' || miss === 'idea'){
+      if (st.doing.needs === 'what') continue;
+      st.what = null;
+      if (!st.where){
+        const ws = p.where.filter(w => fits(w, 'who', st.who) && fits(w, 'doing', st.doing));
+        if (!ws.length) continue;
+        st.where = rnd(ws);
+      }
+      if (check(st, 'core', 2)) continue;
+    }
+    return {miss, clause:st};
+  }
+  return null;
+}
+// What the child sees: the fragment's parts, with the missing ones left out.
+function fragParts(f){
+  if (f.miss === 'idea') return parts(f.clause).filter(x => x.kind === 'where');
+  if (f.miss === 'join') return [{kind:'join', t:f.join}, ...parts(f.clause)];
+  return parts(f.clause).filter(x => x.kind !== f.miss);
+}
+// One complete sentence the fragment could become.
+function fragFixed(f){
+  if (f.miss === 'join') return [{kind:'lit', t:'…'}, {kind:'join', t:f.join}, ...parts(f.clause)];
+  return parts(f.clause);
+}
+const FRAG_WHY = {
+  who:'There is no who.',
+  doing:'There is no doing word.',
+  what:'The doing word needs a what.',
+  idea:'It only tells you where. There is no who and no doing word.',
+  join:'A joining idea cannot stand on its own. It needs a main idea.'
+};
+
 /* ---------- what counts as making sense ----------
  * The word cards record who does what IN THE PICTURE. Taken strictly, that rejects good sentences
  * ("The dog is splashing in a puddle" when only the girl's card says "splashes"). So, once, at load:

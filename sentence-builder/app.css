@@ -315,3 +315,16 @@ button.wr-and{border:2px solid #c0392b;color:#c0392b;font-family:'Andika',sans-s
 .wr-chip.c-how{background:var(--how)} .wr-chip.c-describe{background:var(--describe)}
 .wr-chip.c-coord{background:#fff;color:#c0392b;border:2px solid #c0392b} .wr-chip.c-subord{background:#fff;color:#2e5fa3;border:2px solid #2e5fa3}
 .wr-chip.c-rel{background:#fff;color:#4a4a5a;border:2px dashed #7a7a8c}
+
+/* Complete it (complete.js) */
+.chip.empty.gap img,.chip.empty.gap .lab{display:block}
+.chip.empty.gap img{opacity:.55;margin:0 auto 2px}
+.chip.empty.gap{min-width:110px}
+.chip.empty.gap-main{--slot:var(--muted);color:var(--muted)!important;min-width:150px}
+.card.pick-col{display:inline-flex;align-items:center;gap:8px;font-family:'Nunito',sans-serif;font-weight:900;font-size:1.35rem;min-width:130px;justify-content:center}
+.card.pick-col img{height:30px}
+.sort-count{flex:0 0 100%;font-weight:900;color:var(--muted);font-size:.95rem}
+.sort-done{flex:0 0 100%;font-size:1.4rem;font-weight:800;align-self:center}
+.sort-choice{display:flex;flex-wrap:wrap;gap:12px}
+.btn.big{font-size:1.35rem;padding:16px 22px;flex:1 1 220px;justify-content:center}
+#completeCards a.step-card{text-decoration:none;display:block}

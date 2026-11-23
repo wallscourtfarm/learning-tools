@@ -5,10 +5,11 @@
  *   Step 6 a fronted adverbial + comma · Step 7 a relative clause in commas or brackets.
  * Fix it mode: generated run-on, comma-splice, missing-comma, "and… and…" and overloaded
  * sentences for children to repair.
+ * Complete it mode (complete.js): fill the missing colour, and Sentence or not?
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '10.10.26s';
+const VERSION = '23.11.26a';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -196,6 +197,7 @@ function showHome(){
   });
   const wc = $('#writeCard'); if (wc) wc.onclick = () => startWrite(null);
   $('#fixNote').textContent = `Fix it sentences use the ${topic.label} pictures.`;
+  completeCards();
   const ht = $('#homeTarget');
   if (ht){ const h = isFree() && typeof targetBannerHtml === 'function' ? targetBannerHtml([]) : ''; ht.innerHTML = h; ht.hidden = !h; }
 }
@@ -231,7 +233,7 @@ function navTo(key){
   showHome(); go(location.pathname + (key === 'home' ? '' : '?go=' + key));
   setNav(key);
   if (key === 'home') window.scrollTo({top:0, behavior:'smooth'});
-  else scrollToId(key === 'fix' ? 'fixSec' : key === 'free' ? 'picsSec' : 'stepsSec');
+  else scrollToId(key === 'fix' ? 'fixSec' : key === 'complete' ? 'completeSec' : key === 'free' ? 'picsSec' : 'stepsSec');
 }
 // The bar under the header on every activity screen: where you are, and what you can change.
 function setCrumbs(tag, title){
@@ -250,6 +252,10 @@ function setCrumbs(tag, title){
     setNav('fix');
     add('🔧 Change type', chooseFixModal);
     add('🖼️ Change picture', () => choosePictureModal(p => startFix(fx.type, p)));
+  } else if (mode === 'complete'){
+    setNav('complete');
+    add('🧩 Change activity', chooseCompleteModal);
+    add('🖼️ Change picture', () => choosePictureModal(p => startComplete(cx.type, p)));
   } else if (mode === 'write'){
     setNav('write');
     add(wr.pic ? '🖼️ Change picture' : '🖼️ Add a picture', () => choosePictureModal(p => startWrite(p)));
@@ -480,6 +486,7 @@ function render(){
   if (mode === 'fix') return renderFix();
   if (mode === 'free') return renderFree();
   if (mode === 'write') return renderWrite();
+  if (mode === 'complete') return renderComplete();
   renderLine(); renderTools(); renderCoach(); renderBank();
   if (typeof renderTarget === 'function') renderTarget(buildTokens());
 }
@@ -2016,7 +2023,7 @@ function route(){
   const p = new URLSearchParams(location.search);
   if (p.get('target') && typeof sbTarget !== 'undefined') sbTarget = p.get('target');
   const goKey = p.get('go');
-  if (goKey){ if (goKey === 'free') step = 'F'; showHome(); setNav(goKey); scrollToId(goKey === 'fix' ? 'fixSec' : goKey === 'free' ? 'picsSec' : 'stepsSec'); return; }
+  if (goKey){ if (goKey === 'free') step = 'F'; showHome(); setNav(goKey); scrollToId(goKey === 'fix' ? 'fixSec' : goKey === 'complete' ? 'completeSec' : goKey === 'free' ? 'picsSec' : 'stepsSec'); return; }
   const sp = p.get('step'); const st = isNaN(+sp) ? sp : +sp; if (STEPS[st]) step = st;
   if (p.get('mode') === 'write'){ startWrite(); return; }
   const [tid, pid] = (p.get('pic') || '').split('.');
@@ -2025,6 +2032,8 @@ function route(){
   const pp = t && t.pictures.find(x => x.id === pid);
   const fix = p.get('fix');
   if (FIXES[fix]){ startFix(fix, pp || null); return; }
+  const cp = p.get('complete');
+  if (COMPLETE[cp]){ startComplete(cp, pp || null); return; }
   if (pp){ start(pp); return; }
   if (isFree() && !p.get('step')) step = settings.lastStep || 1;
   showHome(); window.scrollTo(0, 0);

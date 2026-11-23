@@ -83,6 +83,21 @@
   .fix-item .q{font-family:'Andika',sans-serif;font-size:14pt}
   .fix-item .kind{font-size:9pt;font-weight:900;color:var(--brand);text-transform:uppercase}
   .fix-item .lines{border-bottom:1.5px solid #b9c1ce;height:11mm}
+  /* complete it */
+  .gapcards{display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+  .gapcard{border:1.5px dashed #9aa3b2;border-radius:3mm;padding:3mm;break-inside:avoid}
+  .gapcard .n{font-size:9pt;font-weight:900;color:var(--brand)}
+  .gapcard .q{display:flex;flex-wrap:wrap;align-items:center;gap:1mm;margin:1.5mm 0 2mm;min-height:12mm}
+  .gapbox{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:26mm;min-height:11mm;border:2.5px dashed;border-radius:2mm;font-size:7pt;font-weight:900;text-transform:uppercase}
+  .gapbox img{height:5mm;border-radius:2px;padding:.5mm;opacity:.8}
+  .nb{display:inline-flex;align-items:center;white-space:nowrap}
+  .gapcard .lines{border-bottom:1.5px solid #b9c1ce;height:9mm}
+  .sortrow{display:flex;align-items:center;gap:4mm;border-bottom:1px solid var(--line);padding:2.6mm 0}
+  .sortrow .q{flex:1;font-family:'Andika',sans-serif;font-size:14pt}
+  .sortrow .tick{flex:0 0 24mm;height:9mm;border:2px solid #9aa3b2;border-radius:2mm}
+  .sorthead{display:flex;gap:4mm;font-weight:900;font-size:10pt;color:var(--muted)}
+  .sorthead span:first-child{flex:1}
+  .sorthead span{flex:0 0 24mm;text-align:center}
   .answers li{font-family:'Andika',sans-serif;font-size:12pt;margin-bottom:2mm}
 
   @media print{
@@ -104,6 +119,7 @@
       <option value="cards">Picture word cards</option>
       <option value="strips">Sentence strips</option>
       <option value="fix">Fix it sheet</option>
+      <option value="complete">Complete it cards + Sentence or not?</option>
     </select>
   </label>
   <label id="picWrap">Picture <select id="pic"></select></label>
@@ -134,19 +150,19 @@
 <p class="hint" id="hint"></p>
 <div id="out"></div>
 
-<script src="content.js?v=10.10.26s"></script>
-<script src="topics/stories-more.js?v=10.10.26s"></script>
-<script src="topics/settings.js?v=10.10.26s"></script>
-<script src="topics/characters.js?v=10.10.26s"></script>
-<script src="topics/history-more.js?v=10.10.26s"></script>
-<script src="topics/science.js?v=10.10.26s"></script>
-<script src="topics/geography.js?v=10.10.26s"></script>
-<script src="topics/scigeo-more.js?v=10.10.26s"></script>
-<script src="topics/history-more2.js?v=10.10.26s"></script>
-<script src="topics/everyday.js?v=10.10.26s"></script>
-<script src="engine.js?v=10.10.26s"></script>
+<script src="content.js?v=23.11.26a"></script>
+<script src="topics/stories-more.js?v=23.11.26a"></script>
+<script src="topics/settings.js?v=23.11.26a"></script>
+<script src="topics/characters.js?v=23.11.26a"></script>
+<script src="topics/history-more.js?v=23.11.26a"></script>
+<script src="topics/science.js?v=23.11.26a"></script>
+<script src="topics/geography.js?v=23.11.26a"></script>
+<script src="topics/scigeo-more.js?v=23.11.26a"></script>
+<script src="topics/history-more2.js?v=23.11.26a"></script>
+<script src="topics/everyday.js?v=23.11.26a"></script>
+<script src="engine.js?v=23.11.26a"></script>
 <script>
-const VERSION = '10.10.26s';
+const VERSION = '23.11.26a';
 const $ = q => document.querySelector(q);
 const ICON = k => `icons/${k}.png`;
 const LAB = {who:'who', doing:'doing', what:'what', where:'where', when:'when', how:'how', describe:'describe'};
@@ -280,22 +296,69 @@ function fix(){
     <div class="sheet portrait"><h1>Fix it! Answers (one good fix for each)</h1><p style="color:var(--muted);font-weight:700">Other fixes may also be right, e.g. <i>and</i>, <i>but</i> or <i>so</i> instead of a full stop.</p><ol class="answers">${ans}</ol>${foot('Teacher copy ·')}</div>`;
 }
 
+/* ---------- complete it ---------- */
+let compCache = null;
+const KCOL = {who:'who', doing:'doing', what:'what', where:'where', join:'sub'};
+function compBlocks(f){
+  // the fragment in colour, with a dashed box where the missing part goes
+  const box = k => `<span class="gapbox" style="border-color:var(--${k});color:var(--${k})"><img src="${ICON(k)}" class="${k}" alt="">${k}?</span>`;
+  const out = [];
+  if (f.miss === 'idea') out.push(box('who'), box('doing'));
+  if (f.miss === 'join') out.push(`<span class="gapbox" style="border-color:#8a93a3;color:#8a93a3">main idea?</span>`);
+  const ps = f.miss === 'idea' || f.miss === 'join' ? fragParts(f) : parts(f.clause);
+  let first = out.length === 0;
+  ps.forEach(x => {
+    if (x.kind === f.miss){ out.push(box(x.kind)); first = false; return; }
+    const t = first ? cap(x.t) : x.t; first = false;
+    out.push(x.kind === 'join' ? `<span class="blk sub">${esc(t)}</span>` : blk(x.kind, t));
+  });
+  // keep the full stop on the same line as the last part
+  out[out.length - 1] = `<span class="nb">${out[out.length - 1]}<span class="blk lit">.</span></span>`;
+  return out.join('');
+}
+function complete(){
+  const p = getPic();
+  if (!compCache || compCache.key !== p.id){
+    const gaps = Array.from({length:8}, (_, i) => genFragment(p, [['who','doing','what','who','doing','who','doing','what'][i]]) || genFragment(p));
+    const sorts = shuffle([
+      ...Array.from({length:5}, () => ({clause:genClause(p)})),
+      ...['who','doing','what','idea','join'].map(k => ({f:genFragment(p, [k]) || genFragment(p, ['who','doing','idea'])}))
+    ]).filter(x => x.clause || x.f);
+    compCache = {key:p.id, gaps, sorts};
+  }
+  const {gaps, sorts} = compCache;
+  const txt = tk => textOf([...tk, {t:'.'}]).text;
+  const cardsHtml = gaps.map((f, i) => `<div class="gapcard"><div class="n">${i + 1}. Something is missing. Fill the gap.</div><div class="q">${compBlocks(f)}</div><div class="lines"></div></div>`).join('');
+  const sortHtml = sorts.map((x, i) => `<div class="sortrow"><span class="q">${i + 1}. ${esc(txt(x.f ? fragParts(x.f) : parts(x.clause)))}</span><span class="tick"></span><span class="tick"></span></div>`).join('');
+  const gapAns = gaps.map(f => `<li>${esc(txt(fragFixed(f)))} <small style="color:var(--muted)">(missing: ${f.miss})</small></li>`).join('');
+  const sortAns = sorts.map(x => `<li>${x.f ? '🧩 Not complete. ' + esc(FRAG_WHY[x.f.miss]) + (x.f.miss === 'join' ? ' Add one in front: ' : ' e.g. ') + esc(txt(fragFixed(x.f))) : '✅ Complete.'}</li>`).join('');
+  return `<div class="sheet portrait"><div class="fix-top"><img src="${p.img}" alt=""><div><h1>Complete it! ${esc(p.title)}</h1>
+    <p style="font-weight:700;color:var(--muted)">Each sentence is missing a part. Look at the colour of the dashed box. Choose a word for it, then write the whole sentence on the line. Read it aloud: does it make sense?</p></div></div>
+    <div class="gapcards" style="margin-top:4mm">${cardsHtml}</div>${foot(p.title + ' ·')}</div>
+    <div class="sheet portrait"><h1>Sentence or not? ${esc(p.title)}</h1>
+    <p style="font-weight:700;color:var(--muted);margin:0 0 3mm">Read each one aloud. A complete sentence has a <b>who</b> and a <b>doing</b> word, and makes sense on its own. Tick a box.</p>
+    <div class="sorthead"><span></span><span>✅ Complete</span><span>🧩 Not yet</span></div>${sortHtml}${foot(p.title + ' ·')}</div>
+    <div class="sheet portrait"><h1>Complete it! Answers</h1><p style="color:var(--muted);font-weight:700">Fill the gap: one good answer each. Other words that make sense are right too.</p><ol class="answers">${gapAns}</ol>
+    <h2>Sentence or not?</h2><ol class="answers">${sortAns}</ol>${foot('Teacher copy ·')}</div>`;
+}
+
 /* ---------- render ---------- */
 function render(){
   const k = $('#kind').value;
-  $('#picWrap').hidden = !(k === 'cards' || k === 'fix');
+  $('#picWrap').hidden = !(k === 'cards' || k === 'fix' || k === 'complete');
   $('#stepWrap').hidden = k !== 'strips';
   $('#fixWrap').hidden = k !== 'fix';
-  $('#again').hidden = k !== 'fix';
+  $('#again').hidden = k !== 'fix' && k !== 'complete';
   const landscape = k === 'mat' || k === 'strips';
   $('#pageSize').textContent = `@page{size:A4 ${landscape ? 'landscape' : 'portrait'};margin:0}`;
   $('#hint').textContent = {
     mat:'One A4 landscape page: the 7-step ladder, a "before I finish" checklist and the colour key. Laminate for desks.',
     cards:'Two A4 pages: the picture with its who / doing / what / where cards, then extras, punctuation and joining-word cards to cut out.',
     strips:'One A4 landscape page of 4 strips for the chosen step. Use with the word cards or for writing.',
+    complete:'Three A4 pages: 8 fill-the-gap cards (dashed box = the missing colour), a Sentence or not? sorting sheet, then teacher answers. "New sentences" makes a fresh set.',
     fix:'Two A4 pages: 8 sentences made from the picture\'s word cards to fix, then a teacher answer page. "New sentences" makes a fresh set.'
   }[k];
-  $('#out').innerHTML = k === 'mat' ? mat() : k === 'cards' ? cards() : k === 'strips' ? strips() : fix();
+  $('#out').innerHTML = k === 'mat' ? mat() : k === 'cards' ? cards() : k === 'strips' ? strips() : k === 'complete' ? complete() : fix();
 }
 $('#ver').textContent = VERSION;
 // ?kind=cards&pic=space.station&step=2&fix=runon opens a resource directly
@@ -307,7 +370,7 @@ $('#ver').textContent = VERSION;
   if (q.get('fix')) $('#fixType').value = q.get('fix');
 })();
 ['kind','pic','step','fixType'].forEach(id => $('#' + id).onchange = render);
-$('#again').onclick = () => { fixCache = null; render(); };
+$('#again').onclick = () => { fixCache = null; compCache = null; render(); };
 $('#printBtn').onclick = () => window.print();
 render();
 </script>
