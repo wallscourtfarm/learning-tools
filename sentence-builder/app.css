@@ -328,3 +328,60 @@ button.wr-and{border:2px solid #c0392b;color:#c0392b;font-family:'Andika',sans-s
 .sort-choice{display:flex;flex-wrap:wrap;gap:12px}
 .btn.big{font-size:1.35rem;padding:16px 22px;flex:1 1 220px;justify-content:center}
 #completeCards a.step-card{text-decoration:none;display:block}
+
+/* 25.11.26: one tool — home menu, More, topic rows, Teacher page, Sound it out, locked */
+.home-modes.big4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.home-modes.big4 button{padding:18px}
+.home-modes.big4 .big{font-size:2.6rem}
+.home-modes.big4 b{font-size:1.35rem}
+.more-h{margin:22px 0 4px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.home-modes.more{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.home-modes.more button{padding:10px 14px;border-width:2px}
+.home-modes.more .big{font-size:1.4rem}
+.home-modes.more b{font-size:1.05rem}
+.topic-row{margin:4px 0 12px;align-items:center}
+.topic-row .topic-lab{font-weight:900;color:var(--muted);margin-right:4px}
+body.locked #mainNav,body.locked #teacherBtn{display:none}
+body.locked .brand{pointer-events:none}
+#lockNote a{color:inherit}
+
+.t-card{background:#fff;border:3px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.t-card h3{margin:0 0 10px;font-size:1.25rem;font-weight:900}
+.t-send{border-color:var(--brand)}
+.t-form{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end}
+.t-form label{display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:.95rem}
+.t-form select{font:inherit;font-weight:700;padding:8px 10px;border-radius:10px;border:2px solid var(--line);max-width:min(440px,90vw)}
+.t-form .t-check{flex-direction:row;align-items:center;gap:8px;padding-bottom:8px}
+.t-form .t-check input{width:22px;height:22px}
+.t-out{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:14px}
+.t-qr{width:170px;height:170px;flex:0 0 170px}
+.t-qr svg{width:100%;height:100%}
+.t-linkbox{flex:1 1 280px;min-width:0}
+.t-linkbox input{width:100%;font:inherit;font-size:.9rem;padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:#f7f9fc}
+.t-btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.t-more{margin-bottom:14px}
+.t-more a.step-card,.t-more button.step-card{text-decoration:none;display:block;font:inherit;color:var(--ink)}
+.t-how ul{margin:0;padding-left:20px;line-height:1.6;font-weight:600}
+.t-key{display:inline-block;border-radius:6px;padding:0 6px;color:#fff;font-weight:800}
+.t-key.c-doing{color:#3a2c00}
+.c-where{background:var(--where)} .c-when{background:var(--when)} .c-how{background:var(--how)} .c-describe{background:var(--describe)}
+
+/* Sound it out (sounds.js) */
+.pf-letters{flex:0 0 100%;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;margin:6px 0}
+.pf-letter{border:3px solid var(--line);background:#fff;border-radius:12px;min-width:58px;padding:8px 10px;font-family:'Andika',sans-serif;font-size:2.4rem;line-height:1.1;color:var(--ink);text-align:center}
+button.pf-letter:hover{border-color:var(--brand)}
+.pf-gap{border:0;background:none;width:34px;min-height:64px;font-size:1.5rem;color:#b9c1ce;font-weight:900}
+.pf-gap.cut{color:#c0392b}
+.pf-letter.chunk-a{background:#eaf6fd;color:#0f6e9c;border-color:#a9d6ef}
+.pf-letter.chunk-b{background:#fff3d6;color:#a3720b;border-color:#f0d58b}
+.pf-letter.chunk-c{background:#eaf8f0;color:#17753f;border-color:#a8dcb9}
+.pf-letter.chunk-d{background:#f3e8fd;color:#6b3fa0;border-color:#d5bdf0}
+.pf-letter.chunk-e{background:#fdeaea;color:#a3231f;border-color:#f0b3b1}
+.pf-frames{flex:0 0 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
+.pf-frame{min-width:64px;height:64px;border:3px solid var(--ink);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Andika',sans-serif;font-size:2rem;background:#fff}
+.pf-frames.empty .pf-frame{border-style:dashed;border-color:#b9c1ce}
+.pf-mini{display:inline-flex;gap:2px;margin-right:8px;font-family:'Andika',sans-serif;font-size:1.1rem}
+.pf-mini{border:2px solid var(--ink);border-radius:6px;padding:0 4px}
+.pf-mini i{display:inline-block;width:2px;background:var(--ink);margin:0 3px}
+@media (max-width:600px){ .pf-letter{min-width:44px;font-size:1.8rem;padding:6px} .pf-gap{width:24px} .pf-frame{min-width:48px;height:52px;font-size:1.6rem} }
+.pf-minis{margin-top:6px}

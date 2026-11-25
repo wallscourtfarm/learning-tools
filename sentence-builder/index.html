@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231798d3'/%3E%3Crect x='4' y='12' width='7' height='8' rx='2' fill='%23e8792e'/%3E%3Crect x='12.5' y='12' width='7' height='8' rx='2' fill='%23f2c94c'/%3E%3Crect x='21' y='12' width='7' height='8' rx='2' fill='%234caf6d'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=23.11.26a">
+<link rel="stylesheet" href="app.css?v=25.11.26a">
 </head>
 <body>
 <header id="top">
@@ -17,16 +17,13 @@
   </a>
   <nav id="mainNav" aria-label="Main">
     <button data-nav="home">🏠<span>Home</span></button>
-    <button data-nav="build">🧱<span>Build a sentence</span></button>
-    <button data-nav="free">✨<span>Free build</span></button>
+    <button data-nav="build">🧱<span>Build</span></button>
     <button data-nav="complete">🧩<span>Complete it</span></button>
-    <button data-nav="write">📝<span>Check my writing</span></button>
     <button data-nav="fix">🔧<span>Fix it</span></button>
-    <a class="nav-link" href="teach/index.html">🎓<span>Teach</span></a>
+    <button data-nav="sounds">🔤<span>Sound it out</span></button>
   </nav>
   <div class="tools">
-    <a class="tool" href="print.html" target="_blank" rel="noopener" title="Printable resources">🖨️<span>Printables</span></a>
-    <button class="tool" id="setBtn" title="Teacher settings">⚙️<span>Teacher</span></button>
+    <button class="tool" id="teacherBtn" title="For teachers: send a child to an activity, teach on the board, printables, settings">🎓<span>Teacher</span></button>
   </div>
 </header>
 <div id="crumbs" hidden>
@@ -37,21 +34,24 @@
 <main id="home">
   <section class="intro">
     <h1>Sentence Builder</h1>
-    <p>Build sentences that make sense, one part at a time. Choose what you want to do.</p>
-    <div class="home-modes">
-      <button data-nav="build"><span class="big">🧱</span><b>Build a sentence</b><small>Step by step, from who + doing to relative clauses</small></button>
+    <p>What would you like to do?</p>
+    <div class="home-modes big4">
+      <button data-nav="build"><span class="big">🧱</span><b>Build a sentence</b><small>Choose a picture. Build it one coloured part at a time.</small></button>
+      <button data-nav="complete"><span class="big">🧩</span><b>Complete it</b><small>Is it a whole sentence? Find the missing colour and fill the gap.</small></button>
+      <button data-nav="fix"><span class="big">🔧</span><b>Fix it</b><small>Mend sentences that run on or have too much in them.</small></button>
+      <button data-nav="sounds"><span class="big">🔤</span><b>Sound it out</b><small>Split a word into its sounds, one sound in each box.</small></button>
+    </div>
+    <h2 class="more-h">More</h2>
+    <div class="home-modes more">
       <button data-nav="free"><span class="big">✨</span><b>Free build</b><small>Start simple, then add anything you choose</small></button>
-      <button data-nav="complete"><span class="big">🧩</span><b>Complete it</b><small>Is it a whole sentence? Find the missing colour and fill the gap</small></button>
       <button data-nav="write"><span class="big">📝</span><b>Check my writing</b><small>Type your own sentence and check it</small></button>
-      <button data-nav="fix"><span class="big">🔧</span><b>Fix it</b><small>Repair run-ons, comma splices and muddled sentences</small></button>
-      <a class="home-teach" href="teach/index.html"><span class="big">🎓</span><b>Teach</b><small>Model each year group's sentence structures on the board, present them block by block, export to PowerPoint</small></a>
     </div>
   </section>
   <section hidden>
-    <button class="write-card" id="writeCard"><span class="big">📝</span><span><b>Check my own writing</b><small>Type your sentence. Hear it read back. See each idea in colour and fix run-ons and missing doing words.</small></span></button>
+    <button class="write-card" id="writeCard" hidden><span class="big">📝</span><span><b>Check my own writing</b><small>Type your sentence. Hear it read back. See each idea in colour and fix run-ons and missing doing words.</small></span></button>
   </section>
   <section id="stepsSec">
-    <h2>Build a sentence · 1. Choose your step</h2>
+    <h2>🧱 Build a sentence · 1. Choose your step</h2>
     <div id="stepCards" class="step-cards"></div>
   </section>
   <section id="picsSec">
@@ -62,13 +62,25 @@
   </section>
   <section id="completeSec">
     <h2>🧩 Complete it: is it a whole sentence?</h2>
+    <div class="topic-tabs topic-row"></div>
     <p class="note">A complete sentence has a <b style="color:#b5520f">who</b> and a <b style="color:#8a6a00">doing</b> word, and makes sense on its own. <span id="completeNote"></span></p>
     <div id="completeCards" class="step-cards"></div>
   </section>
   <section id="fixSec">
-    <h2>Fix it: repair a sentence</h2>
+    <h2>🔧 Fix it: repair a sentence</h2>
+    <div class="topic-tabs topic-row"></div>
     <p class="note" id="fixNote"></p>
     <div id="fixCards" class="step-cards"></div>
+  </section>
+  <section id="soundsSec">
+    <h2>🔤 Sound it out: phoneme frames</h2>
+    <p class="note">Say the word. Count the sounds. Then split it so there is one sound in each box.</p>
+    <div id="soundCards" class="step-cards"></div>
+  </section>
+  <section id="teacherSec">
+    <h2>🎓 For teachers</h2>
+    <p class="note">Everything is in this one tool. Choose an activity for a child below, then give them the link or QR code. It opens straight on that activity.</p>
+    <div id="teacherBox"></div>
   </section>
 </main>
 
@@ -88,24 +100,27 @@
   </div>
 </main>
 
-<footer id="foot">Sentence Builder · Version <span id="ver"></span> · No pupil information is stored.</footer>
+<footer id="foot">Sentence Builder · Version <span id="ver"></span> · No pupil information is stored.<span id="lockNote" hidden> · 🔒 Set by your teacher · <a href="#" id="unlockLink">Teacher: unlock</a></span></footer>
 
 <div id="modal" class="modal" hidden><div class="modal-box" id="modalBox"></div></div>
 
-<script src="content.js?v=23.11.26a"></script>
-<script src="topics/stories-more.js?v=23.11.26a"></script>
-<script src="topics/settings.js?v=23.11.26a"></script>
-<script src="topics/characters.js?v=23.11.26a"></script>
-<script src="topics/history-more.js?v=23.11.26a"></script>
-<script src="topics/science.js?v=23.11.26a"></script>
-<script src="topics/geography.js?v=23.11.26a"></script>
-<script src="topics/scigeo-more.js?v=23.11.26a"></script>
-<script src="topics/history-more2.js?v=23.11.26a"></script>
-<script src="topics/everyday.js?v=23.11.26a"></script>
-<script src="structures.js?v=23.11.26a"></script>
-<script src="engine.js?v=23.11.26a"></script>
-<script src="bridge.js?v=23.11.26a"></script>
-<script src="complete.js?v=23.11.26a"></script>
-<script src="app.js?v=23.11.26a"></script>
+<script src="content.js?v=25.11.26a"></script>
+<script src="topics/stories-more.js?v=25.11.26a"></script>
+<script src="topics/settings.js?v=25.11.26a"></script>
+<script src="topics/characters.js?v=25.11.26a"></script>
+<script src="topics/history-more.js?v=25.11.26a"></script>
+<script src="topics/science.js?v=25.11.26a"></script>
+<script src="topics/geography.js?v=25.11.26a"></script>
+<script src="topics/scigeo-more.js?v=25.11.26a"></script>
+<script src="topics/history-more2.js?v=25.11.26a"></script>
+<script src="topics/everyday.js?v=25.11.26a"></script>
+<script src="structures.js?v=25.11.26a"></script>
+<script src="engine.js?v=25.11.26a"></script>
+<script src="bridge.js?v=25.11.26a"></script>
+<script src="lib/qrcode.js?v=25.11.26a"></script>
+<script src="sounds.js?v=25.11.26a"></script>
+<script src="teacher.js?v=25.11.26a"></script>
+<script src="complete.js?v=25.11.26a"></script>
+<script src="app.js?v=25.11.26a"></script>
 </body>
 </html>

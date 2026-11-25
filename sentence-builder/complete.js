@@ -321,5 +321,5 @@ function completeCards(){
   a.href = 'print.html?kind=complete'; a.target = '_blank'; a.rel = 'noopener';
   cc.appendChild(a);
   const n = document.getElementById('completeNote');
-  if (n) n.textContent = `Complete it uses the ${topic.label} pictures (change the topic under Build a sentence).`;
+  if (n) n.textContent = `It uses the ${topic.label} pictures. Choose a different set above.`;
 }

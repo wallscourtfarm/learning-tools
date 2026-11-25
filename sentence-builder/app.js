@@ -9,7 +9,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '23.11.26a';
+const VERSION = '25.11.26a';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -159,15 +159,43 @@ function speakTokens(tokens, after){
 function readSentence(opts = {}){ speakTokens(buildTokens(opts), () => { heard = true; render(); }); }
 
 /* ---------- home ---------- */
-function showHome(){
+// The home page shows one thing at a time: the menu, or one activity's choices.
+// view: menu | build | free | complete | fix | sounds | teacher
+let homeView = 'menu';
+const SECTIONS = {menu:['.intro'], build:['#stepsSec','#picsSec'], free:['#picsSec'], complete:['#completeSec'],
+                  fix:['#fixSec'], sounds:['#soundsSec'], teacher:['#teacherSec']};
+function showHome(view){
   if (window.speechSynthesis) speechSynthesis.cancel();
+  if (view) homeView = view;
+  if (homeView === 'free') step = 'F';
+  if (homeView === 'build' && isFree()) step = settings.lastStep || 1;
   mode = 'build'; pic = null;
-  $('#home').hidden = false; $('#build').hidden = true; $('#crumbs').hidden = true;
-  setNav(isFree() ? 'free' : 'home');
+  $('#home').hidden = false; $('#build').hidden = true;
+  document.querySelectorAll('#home > section').forEach(sec => sec.hidden = true);
+  SECTIONS[homeView].forEach(q => { const n = document.querySelector('#home ' + q); if (n) n.hidden = false; });
+  // a child sent here by the teacher only chooses a picture: the step and picture set are fixed
+  if (locked){ $('#stepsSec').hidden = true; }
+  $('#topicTabs').hidden = locked;
+  setNav(homeView === 'menu' ? 'home' : homeView);
+  // a "Home ›" bar on every page except the menu itself
+  if (homeView === 'menu') $('#crumbs').hidden = true;
+  else {
+    const names = {build:'🧱 Build a sentence', free:'✨ Free build', complete:'🧩 Complete it', fix:'🔧 Fix it', sounds:'🔤 Sound it out', teacher:'🎓 Teacher'};
+    $('#crumbs').hidden = false;
+    $('#crumbPath').innerHTML = (locked ? '<span>🔒</span>' : '<a href="#" data-crumb="home">Home</a><span>›</span>') + `<b>${names[homeView]}</b>`;
+    const h = $('#crumbPath').querySelector('[data-crumb]'); if (h) h.onclick = e => { e.preventDefault(); navTo('home'); };
+    $('#crumbActions').innerHTML = '';
+  }
+  requestAnimationFrame(fitHeader);
   const sc = $('#stepCards'); sc.innerHTML = '';
-  // Free build has its own place in the menu; here it is just "choose a picture"
-  $('#stepsSec').hidden = isFree();
-  $('#picsSec h2').textContent = isFree() ? '✨ Free build · Choose a picture' : '2. Choose a picture';
+  $('#picsSec h2').textContent = isFree() ? '✨ Free build · Choose a picture' : locked ? `${STEPS[step].title}: ${STEPS[step].sub} · Choose a picture` : '2. Choose a picture';
+  document.querySelectorAll('#home .topic-row').forEach(r => {
+    r.hidden = locked;
+    r.innerHTML = '<span class="topic-lab">Pictures:</span>';
+    TOPICS.forEach(t => { const b = el('button', t === topic ? 'on' : '', `${esc(t.label)} <small>(${esc(t.years)})</small>`); b.onclick = () => { topic = t; showHome(); }; r.appendChild(b); });
+  });
+  if (homeView === 'sounds' && typeof soundCards === 'function') soundCards();
+  if (homeView === 'teacher' && typeof teacherPanel === 'function') teacherPanel();
   Object.entries(STEPS).forEach(([n, st]) => {
     if (n === 'F') return;
     const b = el('button', 'step-card' + (String(n) === String(step) ? ' on' : ''));
@@ -196,7 +224,7 @@ function showHome(){
     fg.appendChild(b);
   });
   const wc = $('#writeCard'); if (wc) wc.onclick = () => startWrite(null);
-  $('#fixNote').textContent = `Fix it sentences use the ${topic.label} pictures.`;
+  $('#fixNote').textContent = `Fix it sentences use the ${topic.label} pictures. Choose a different set above.`;
   completeCards();
   const ht = $('#homeTarget');
   if (ht){ const h = isFree() && typeof targetBannerHtml === 'function' ? targetBannerHtml([]) : ''; ht.innerHTML = h; ht.hidden = !h; }
@@ -219,7 +247,11 @@ const fitHeader = () => {
 };
 window.addEventListener('resize', fitHeader);
 let routing = false;          // true while restoring a screen from the address (Back button)
+// ?lock=1: the teacher has sent the child to one activity. The menu is hidden and the
+// address keeps the lock as the child moves between pictures.
+let locked = new URLSearchParams(location.search).get('lock') === '1';
 function go(url){
+  if (locked && !/[?&]lock=1/.test(url)) url += (url.includes('?') ? '&' : '?') + 'lock=1';
   try { if (routing) history.replaceState(null, '', url); else history.pushState(null, '', url); } catch(e) {}
 }
 function setNav(key){
@@ -227,35 +259,36 @@ function setNav(key){
 }
 function scrollToId(id){ const n = document.getElementById(id); if (n) n.scrollIntoView({behavior:'smooth', block:'start'}); }
 function navTo(key){
+  if (locked && key === 'home'){ location.href = lockHome; return; }
   if (key === 'write') return startWrite(null);
-  if (key === 'free'){ step = 'F'; }
-  if (key === 'build' && isFree()) step = settings.lastStep || 1;
-  showHome(); go(location.pathname + (key === 'home' ? '' : '?go=' + key));
-  setNav(key);
-  if (key === 'home') window.scrollTo({top:0, behavior:'smooth'});
-  else scrollToId(key === 'fix' ? 'fixSec' : key === 'complete' ? 'completeSec' : key === 'free' ? 'picsSec' : 'stepsSec');
+  showHome(key === 'home' ? 'menu' : key);
+  go(location.pathname + (key === 'home' ? '' : '?go=' + key));
+  window.scrollTo(0, 0);
 }
 // The bar under the header on every activity screen: where you are, and what you can change.
 function setCrumbs(tag, title){
   $('#crumbs').hidden = false;
   requestAnimationFrame(fitHeader);
-  $('#crumbPath').innerHTML = `<a href="#" data-crumb="home">Home</a><span>›</span>${tag}${title ? `<span>›</span><b>${esc(title)}</b>` : ''}`;
-  $('#crumbPath').querySelector('[data-crumb]').onclick = e => { e.preventDefault(); navTo('home'); };
+  $('#crumbPath').innerHTML = (locked ? '<span>🔒</span>' : `<a href="#" data-crumb="home">Home</a><span>›</span>`) + `${tag}${title ? `<span>›</span><b>${esc(title)}</b>` : ''}`;
+  const hc = $('#crumbPath').querySelector('[data-crumb]'); if (hc) hc.onclick = e => { e.preventDefault(); navTo('home'); };
   const acts = $('#crumbActions'); acts.innerHTML = '';
   const add = (html, fn) => { const b = el('button', 'crumb-btn', html); b.onclick = fn; acts.appendChild(b); };
   if (mode === 'build' || mode === 'free'){
     setNav(isFree() ? 'free' : 'build');
-    if (!isFree()) add('🪜 Change step', chooseStepModal);
+    if (!isFree() && !locked) add('🪜 Change step', chooseStepModal);
     add('🖼️ Change picture', () => choosePictureModal(p => start(p)));
     add('Next picture ➜', () => { const ps = topic.pictures; start(ps[(ps.indexOf(pic) + 1) % ps.length]); });
   } else if (mode === 'fix'){
     setNav('fix');
-    add('🔧 Change type', chooseFixModal);
+    if (!locked) add('🔧 Change type', chooseFixModal);
     add('🖼️ Change picture', () => choosePictureModal(p => startFix(fx.type, p)));
   } else if (mode === 'complete'){
     setNav('complete');
-    add('🧩 Change activity', chooseCompleteModal);
+    if (!locked) add('🧩 Change activity', chooseCompleteModal);
     add('🖼️ Change picture', () => choosePictureModal(p => startComplete(cx.type, p)));
+  } else if (mode === 'sounds'){
+    setNav('sounds');
+    if (!locked) add('🔤 Change words', () => navTo('sounds'));
   } else if (mode === 'write'){
     setNav('write');
     add(wr.pic ? '🖼️ Change picture' : '🖼️ Add a picture', () => choosePictureModal(p => startWrite(p)));
@@ -284,6 +317,7 @@ function choosePictureModal(onPick){
   let tp = topic;
   const draw = () => {
     openModal('<h2>🖼️ Choose a picture</h2><div class="topic-tabs" id="mTabs"></div><div class="pic-grid mini-grid" id="mPics"></div>');
+    if (locked) $('#mTabs').hidden = true;   // the teacher chose the picture set
     TOPICS.forEach(t => { const b = el('button', t === tp ? 'on' : '', `${esc(t.label)} <small>(${esc(t.years)})</small>`); b.onclick = () => { tp = t; draw(); }; $('#mTabs').appendChild(b); });
     tp.pictures.forEach(p => {
       const b = el('button', 'pic-card', `<img src="${p.img}" alt="" loading="lazy"><div>${esc(p.title)}</div>`);
@@ -487,6 +521,7 @@ function render(){
   if (mode === 'free') return renderFree();
   if (mode === 'write') return renderWrite();
   if (mode === 'complete') return renderComplete();
+  if (mode === 'sounds') return renderSounds();
   renderLine(); renderTools(); renderCoach(); renderBank();
   if (typeof renderTarget === 'function') renderTarget(buildTokens());
 }
@@ -1974,7 +2009,6 @@ function openSettings(){
   const seg = (key, opts) => `<div class="seg" data-k="${key}">${opts.map(([v, l]) => `<button data-v="${v}" class="${String(settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   m.innerHTML = `
     <h2>⚙️ Teacher settings</h2>
-    <p><a class="btn primary" href="print.html" target="_blank" rel="noopener">🖨️ Printable resources</a></p>
     <div class="row"><label>Extras allowed (Step 3 and Fix it)</label>${seg('extras', [[1,'1'],[2,'2'],[3,'3']])}</div>
     <div class="row"><label>Features allowed (Free build)</label>${seg('features', [[2,'2'],[3,'3'],[4,'4'],[5,'5']])}</div>
     <div class="row"><label>Read aloud</label>${seg('voice', [[true,'On'],[false,'Off']])}</div>
@@ -1996,7 +2030,7 @@ function openSettings(){
       <li><b>Steps are by need, not year group.</b> After ${GOAL} sentences at a step the child is told to ask you about moving on. You decide.</li>
     </ul>
     <h3>Setting a child's activity</h3>
-    <p>Open a picture or a Fix it activity, then bookmark the page or save it to the iPad home screen. The address remembers it, e.g. <code>?step=4&amp;pic=space.launch</code> or <code>?fix=runon&amp;pic=stories.forest</code>.</p>
+    <p>Use <b>🎓 Teacher › Send a child to an activity</b>: choose the activity and pictures, then give the child the link or QR code. Tick <b>Keep them on this activity</b> to hide the menu.</p>
     <p style="font-size:.9rem;color:#666">No pupil information is stored. Settings are saved on this device only. Version ${VERSION}.</p>
     <div style="text-align:right;margin-top:14px"><button class="btn primary" id="closeSet">Done</button></div>`;
   m.querySelectorAll('.seg').forEach(sg => sg.querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -2010,11 +2044,17 @@ function openSettings(){
 
 /* ---------- boot ---------- */
 $('#ver').textContent = VERSION;
-$('#homeLink').onclick = e => { e.preventDefault(); navTo('home'); };
+$('#homeLink').onclick = e => { e.preventDefault(); navTo('home'); };   // locked: back to the set activity
 document.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => navTo(b.dataset.nav));
 window.addEventListener('popstate', () => { $('#modal').hidden = true; routing = true; try { route(); } finally { routing = false; }
 fitHeader(); });
-$('#setBtn').onclick = openSettings;
+$('#teacherBtn').onclick = () => navTo('teacher');
+const lockHome = location.pathname + location.search;   // where a locked child goes back to
+if (locked){
+  document.body.classList.add('locked');
+  $('#lockNote').hidden = false;
+  $('#unlockLink').onclick = e => { e.preventDefault(); if (confirm('Unlock Sentence Builder so the child can choose any activity?')){ locked = false; document.body.classList.remove('locked'); $('#lockNote').hidden = true; navTo('home'); } };
+}
 $('#modal').onclick = e => { if (e.target.id === 'modal') $('#modal').hidden = true; };
 
 // Shows the screen the address describes (on load, and when Back / Forward is pressed).
@@ -2022,9 +2062,11 @@ function route(){
   if (window.speechSynthesis) speechSynthesis.cancel();
   const p = new URLSearchParams(location.search);
   if (p.get('target') && typeof sbTarget !== 'undefined') sbTarget = p.get('target');
+  const tp = TOPICS.find(x => x.id === p.get('topic')); if (tp) topic = tp;
+  const sp = p.get('step'); const st = isNaN(+sp) ? sp : +sp; if (STEPS[st]){ step = st; if (st !== 'F'){ settings.step = st; settings.lastStep = st; } }
   const goKey = p.get('go');
-  if (goKey){ if (goKey === 'free') step = 'F'; showHome(); setNav(goKey); scrollToId(goKey === 'fix' ? 'fixSec' : goKey === 'complete' ? 'completeSec' : goKey === 'free' ? 'picsSec' : 'stepsSec'); return; }
-  const sp = p.get('step'); const st = isNaN(+sp) ? sp : +sp; if (STEPS[st]) step = st;
+  if (goKey && SECTIONS[goKey]){ showHome(goKey); window.scrollTo(0, 0); return; }
+  if (SOUND_LISTS[p.get('sounds')]){ startSounds(p.get('sounds')); return; }
   if (p.get('mode') === 'write'){ startWrite(); return; }
   const [tid, pid] = (p.get('pic') || '').split('.');
   const t = TOPICS.find(x => x.id === tid);
@@ -2036,7 +2078,8 @@ function route(){
   if (COMPLETE[cp]){ startComplete(cp, pp || null); return; }
   if (pp){ start(pp); return; }
   if (isFree() && !p.get('step')) step = settings.lastStep || 1;
-  showHome(); window.scrollTo(0, 0);
+  if (p.get('step')){ showHome(isFree() ? 'free' : 'build'); window.scrollTo(0, 0); return; }
+  showHome('menu'); window.scrollTo(0, 0);
 }
 routing = true; try { route(); } finally { routing = false; }
 fitHeader();
