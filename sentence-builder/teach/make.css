@@ -139,3 +139,10 @@ button.mk-word:hover,button.mk-word:focus-visible{border-color:currentColor;back
 }
 .mk-stop{width:.42em;height:.42em;border-radius:50%;background:var(--dark);margin:0 0 .35em .15em;font-size:1em;flex:0 0 auto}
 .present-token.mk-board .mk-stop{background:#fff}
+/* the full stop's own block (26.11.26b) */
+.mk-end{background:#fff;color:#1c1c1c;border:2px solid #1c1c1c;min-width:3.2em}
+.mk-end .mk-words{align-items:center;justify-content:center}
+.mk-bigdot{display:block;width:.9em;height:.9em;border-radius:50%;background:#1c1c1c;margin:.3em .4em}
+.mk-endch{font-size:2.2em;font-weight:900;line-height:1}
+.eg-stop{display:inline-block;width:14px;height:14px;border-radius:50%;background:currentColor}
+.eg-q{font-size:1.3rem;font-weight:900}
