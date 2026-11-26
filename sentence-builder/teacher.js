@@ -60,7 +60,7 @@ function teacherPanel(){
       </div>
     </div>
     <div class="step-cards t-more">
-      <a class="step-card fix-card" href="teach/index.html"><h3>📺 Teach on the board</h3><p>Each year group's colour-coded sentence structures. Present block by block, type your own words, export to PowerPoint.</p></a>
+      <a class="step-card fix-card" href="teach/index.html"><h3>📺 Teach on the board</h3><p>Type any sentence and it is colour-coded. Add Widgit pictures, sound boxes or hidden words, then show it on the board or print it. Also each year group's sentence types.</p></a>
       <a class="step-card fix-card" href="print.html" target="_blank" rel="noopener"><h3>🖨️ Printables</h3><p>Desk mat, word cards, sentence strips, Fix it and Complete it sheets.</p></a>
       <a class="step-card fix-card" href="teach/reference-guide.pdf" target="_blank" rel="noopener"><h3>📄 Reference guide</h3><p>The colour-coded sentence progression, Year 1 to Year 6.</p></a>
       <button class="step-card fix-card" id="tSettings"><h3>⚙️ Settings</h3><p>Extras allowed, read aloud on or off, reading speed. Saved on this device.</p></button>
@@ -68,7 +68,7 @@ function teacherPanel(){
     <div class="t-card t-how">
       <h3>How the parts fit together</h3>
       <ul>
-        <li><b>You teach</b> a sentence structure on the board with <b>Teach on the board</b>.</li>
+        <li><b>You teach</b> with <b>Teach on the board</b>: type a sentence, add pictures or sound boxes if a child needs them, then show it or print it.</li>
         <li><b>Children practise</b> it here: <b>Build</b> (make a sentence from a picture), <b>Complete it</b> (spot and fill a missing who, doing or what), <b>Fix it</b> (mend run-ons and overloaded sentences), <b>Sound it out</b> (split a word into its sounds).</li>
         <li><b>You choose</b> which activity each child does with <b>Send a child to an activity</b> above. Same colours everywhere: <span class="t-key c-who">who</span> <span class="t-key c-doing">doing</span> <span class="t-key c-what">what</span> <span class="t-key c-where">where</span> <span class="t-key c-when">when</span> <span class="t-key c-how">how</span> <span class="t-key c-describe">describe</span></li>
       </ul>

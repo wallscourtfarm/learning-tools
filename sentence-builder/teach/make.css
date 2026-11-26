@@ -1,0 +1,141 @@
+/* Sentence Builder · Teach — "Type a sentence" (make.js), 26.11.26 */
+[hidden]{display:none !important}
+
+/* tabs: three main ones, Year 1-6 inside "Sentence types by year" */
+.year-sub{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.year-sub-btn{background:#fff;border:2px solid #cfe3ee;color:#0f6fa0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:800;cursor:pointer;min-height:44px}
+.year-sub-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+/* the four steps */
+.mk-step{background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.mk-step h2{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:1.25rem;color:var(--dark)}
+.mk-step h2 small{font-size:.85rem;font-weight:600;color:var(--muted)}
+.mk-n{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;font-size:1.05rem;font-weight:900}
+.mk-hint{margin:6px 0 0;font-size:.9rem;color:var(--muted)}
+#mkText{width:100%;box-sizing:border-box;font:inherit;font-size:1.25rem;line-height:1.4;padding:12px 14px;border:2px solid #cfe3ee;border-radius:12px;resize:vertical;min-height:64px}
+#mkText:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(23,152,211,.18)}
+
+.mk-opt{margin-top:12px}
+.mk-opt:first-of-type{margin-top:0}
+.mk-opt h3{margin:0 0 6px;font-size:1rem;color:var(--dark)}
+.mk-seg{display:flex;flex-wrap:wrap;gap:8px}
+.mk-seg button{flex:1 1 150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:48px;padding:8px 10px;border:2px solid #cfe3ee;background:#fff;border-radius:12px;font:inherit;font-weight:800;font-size:.95rem;color:#0f4c6b;cursor:pointer;text-align:center}
+.mk-seg button:hover{border-color:var(--brand)}
+.mk-seg button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.mk-seg button small{font-weight:600;font-size:.78rem;opacity:.85}
+.mk-seg button b{display:flex;align-items:center;justify-content:center;min-height:30px}
+/* the little examples on the "How the words look" buttons */
+.eg-t{font-size:1.2rem;font-weight:900}
+.eg-f{display:inline-flex;gap:2px}
+.eg-f i{display:inline-flex;align-items:center;justify-content:center;width:20px;height:24px;background:#fff;color:#1c1c1c;border:2px solid #555;border-radius:3px;font-style:normal;font-weight:900;font-size:.9rem}
+.eg-l{display:inline-block;width:60px;height:22px;border-bottom:3px solid currentColor}
+.mk-status{margin-top:8px;font-size:.92rem;color:var(--muted)}
+.mk-status:empty{display:none}
+.mk-warn{background:#fff4d6;border:2px solid #e0b84a;color:#5a4000;border-radius:10px;padding:10px 12px}
+.mk-warn a{color:#0f5f8a;font-weight:800}
+
+/* step 3: the coloured sentence */
+#mkPreview{margin-top:10px}
+.mk-empty{margin:0;padding:22px;border:2px dashed #cfe3ee;border-radius:12px;color:var(--muted);text-align:center;font-style:italic}
+.mk-row{padding:10px 0;border-bottom:1px dashed #d6e4ee}
+.mk-row:last-child{border-bottom:0}
+.mk-miss{margin:6px 0 0;font-size:.85rem;color:#a2420c}
+.mk-credit{margin:8px 0 0;text-align:center;font-size:.72rem;color:#444}
+
+.mk-sentence{--fs:18px;font-size:var(--fs);display:flex;flex-wrap:wrap;align-items:stretch;gap:.45em;font-family:'Segoe UI',Roboto,-apple-system,Arial,sans-serif}
+.mk-unit{display:flex;align-items:stretch}
+.mk-part{display:flex;flex-direction:column;align-items:center;border-radius:.6em;padding:.3em .45em .45em;box-shadow:0 1px 3px rgba(0,0,0,.18);min-width:3.5em;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.mk-role{display:flex;align-items:center;justify-content:center;gap:.3em;margin:0 0 .25em;padding:.1em .35em;font:inherit;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:inherit;background:none;border:0;border-radius:.4em;line-height:1.2;min-height:1.6em}
+.mk-role img{height:1.5em;width:auto}
+button.mk-role{cursor:pointer;border:1.5px dashed transparent}
+button.mk-role:hover,button.mk-role:focus-visible{border-color:currentColor;background:rgba(255,255,255,.22)}
+.mk-role i{font-style:normal;font-size:.9em;opacity:.8}
+.mk-words{flex:1;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:.25em .35em}
+.mk-word{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:.2em;padding:.1em .15em;font:inherit;color:inherit;background:none;border:0;border-radius:.4em}
+button.mk-word{cursor:pointer;border:1.5px dashed transparent}
+button.mk-word:hover,button.mk-word:focus-visible{border-color:currentColor;background:rgba(255,255,255,.22)}
+.mk-pic{display:flex;align-items:center;justify-content:center;width:3.6em;height:3.6em;background:#fff;border-radius:.4em;padding:.15em;box-sizing:border-box}
+.mk-pic img{max-width:100%;max-height:100%;object-fit:contain}
+.mk-nopic{background:transparent}
+.mk-t{font-size:1.25em;font-weight:800;line-height:1.25;white-space:nowrap}
+.mk-in-punct{font-size:1.25em;font-weight:900}
+.mk-frame{display:inline-flex;gap:.12em}
+.mk-box{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.7em;padding:0 .12em;box-sizing:border-box;background:#fff;color:#1c1c1c;border:.12em solid #333;border-radius:.2em;font-size:1.05em;font-weight:800;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.mk-line{display:inline-block;height:1.7em;background:#fff;border-bottom:.16em solid #222;border-radius:.2em .2em 0 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.mk-punct{align-self:flex-end;font-size:2.1em;font-weight:900;line-height:1;margin:0 0 .05em .08em;color:var(--dark)}
+/* is / was / has / might: a white diamond in the doing colour, as in the reference guide */
+.mk-c-aux .mk-words{background:#fff;color:#222;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);padding:.9em 1.1em;flex:0 0 auto;align-self:center}
+
+/* step 4 */
+.mk-use{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mk-big{display:flex;flex-direction:column;gap:4px;text-align:left;padding:14px;border:2px solid #cfe3ee;background:#f3f9fd;border-radius:14px;font:inherit;color:var(--dark);cursor:pointer;min-height:96px}
+.mk-big b{font-size:1.1rem}
+.mk-big span{font-size:.86rem;color:#3f5563}
+.mk-big:hover:not(:disabled){border-color:var(--brand);background:#e6f4fb}
+.mk-big:disabled{opacity:.45;cursor:default}
+#mkShowBtn{background:var(--brand);border-color:var(--brand);color:#fff}
+#mkShowBtn span{color:#e9f6fd}
+#mkShowBtn:hover:not(:disabled){background:#137eb3}
+.mk-more{margin-top:12px}
+.mk-more summary{cursor:pointer;font-weight:800;color:#0f6fa0;padding:6px 0}
+.mk-more label{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;font-weight:700;font-size:.92rem}
+.mk-more select,.mk-more input{font:inherit;font-size:16px;padding:6px 8px;border:2px solid #cfe3ee;border-radius:10px;max-width:100%}
+.mk-btn{font:inherit;font-weight:800;font-size:.95rem;border:2px solid var(--brand);border-radius:10px;padding:8px 14px;background:var(--brand);color:#fff;cursor:pointer;min-height:44px}
+.mk-btn.ghost{background:#fff;color:#0f6fa0;border-color:#cfe3ee}
+.mk-btn:disabled{opacity:.45;cursor:default}
+.mk-link{font:inherit;font-weight:800;color:#0f6fa0;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+
+/* pop-ups */
+#mkPop{position:fixed;z-index:2000;background:#fff;border:2px solid #cfe3ee;border-radius:14px;padding:14px;box-shadow:0 10px 32px rgba(0,0,0,.2);width:min(400px,calc(100vw - 24px));max-height:78vh;overflow:auto;box-sizing:border-box}
+#mkPop.mk-sheet{left:0 !important;right:0;bottom:0;top:auto !important;width:100%;border-radius:16px 16px 0 0;max-height:82vh}
+#mkPop h3{margin:0 0 10px;font-size:1.1rem}
+.mk-pop-label{display:block;margin:12px 0 6px;font-weight:800;font-size:.9rem;color:var(--dark)}
+.mk-pop-note{margin:8px 0 0;font-size:.88rem;color:var(--muted)}
+.mk-pop-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.mk-roles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mk-roles button{display:flex;align-items:center;gap:6px;min-height:44px;padding:6px 8px;border:0;border-radius:10px;font:inherit;font-weight:800;font-size:.88rem;cursor:pointer;text-align:left}
+.mk-roles button img{height:20px;width:auto}
+.mk-roles button.on{outline:3px solid #0a0101;outline-offset:2px}
+.mk-wmodes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mk-wmodes button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:64px;padding:6px;border:2px solid #cfe3ee;background:#fff;border-radius:10px;font:inherit;font-weight:800;font-size:.85rem;color:#0f4c6b;cursor:pointer}
+.mk-wmodes button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.mk-snd{display:flex;gap:6px}
+.mk-snd input,.mk-q{flex:1;min-width:0;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 10px;border:2px solid #cfe3ee;border-radius:10px}
+.mk-cur{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mk-cur img{width:56px;height:56px;object-fit:contain;border:2px solid #cfe3ee;border-radius:8px;background:#fff}
+.mk-none{color:var(--muted);font-style:italic}
+.mk-choices{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.mk-choices button{display:flex;flex-direction:column;align-items:center;gap:2px;border:2px solid #cfe3ee;background:#fff;border-radius:10px;padding:4px;cursor:pointer;font:inherit;font-size:.72rem}
+.mk-choices button:hover{border-color:var(--brand)}
+.mk-choices img{width:100%;height:56px;object-fit:contain}
+
+/* on the board (Present mode) */
+.present-token.mk-board .mk-sentence{--fs:clamp(14px,1.7vw,40px)}
+.present-overlay.mk-rich .present-row{gap:1vw;align-items:stretch}
+.present-token.mk-board .mk-sentence,.present-token.mk-board .mk-unit,.present-token.mk-board .mk-part{height:100%}
+.present-token.mk-board .mk-part{box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.present-token.mk-board .mk-punct{color:#fff}
+.present-token.mk-board .mk-pic{width:4.2em;height:4.2em}
+
+/* print (only the sentences) */
+#mkPrint{display:none}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body.mk-printing > *:not(#mkPrint){display:none !important}
+  body.mk-printing{background:#fff}
+  body.mk-printing #mkPrint{display:block}
+  #mkPrint h1{margin:0 0 8px;text-align:center;font-size:24px}
+  #mkPrint .mk-strip{padding:10px 0;border-bottom:1px dashed #999;break-inside:avoid}
+  #mkPrint .mk-strip:last-of-type{border-bottom:0}
+  #mkPrint .mk-sentence{--fs:calc(17px * var(--mk-print, 1))}
+  #mkPrint .mk-part{box-shadow:none}
+}
+
+@media (max-width:760px){
+  .mk-use{grid-template-columns:1fr}
+  .mk-big{min-height:0}
+  .mk-step{padding:14px 12px}
+  .mk-sentence{--fs:15px}
+}
+.mk-stop{width:.42em;height:.42em;border-radius:50%;background:var(--dark);margin:0 0 .35em .15em;font-size:1em;flex:0 0 auto}
+.present-token.mk-board .mk-stop{background:#fff}
