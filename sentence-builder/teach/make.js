@@ -32,7 +32,7 @@ const MK_END = {
   child: {label:'Leave them for the child', eg:'<span class="eg-q">?</span>', sub:'Not shown. The whole sentence at the end of the board shows them.'},
 };
 const MK_END_NAME = {'.':'full stop', '?':'question mark', '!':'exclamation mark', ',':'comma', ';':'semicolon', ':':'colon'};
-const MK_MARK_ICON = {'.':'fullstop.png', ',':'comma.png'};
+const MK_MARK_ICON = {'.':'fullstop.png', ',':'comma.png', '?':'question.png', '!':'exclamation.png'};
 const MK_PICS = {
   off:  {label:'No pictures'},
   part: {label:'One for each coloured part'},
@@ -473,7 +473,7 @@ function buildMakePanel(){
       <div class="mk-opt"><h3>Widgit pictures</h3>${mkSeg('pics', MK_PICS)}<div id="mkPicStatus"></div></div>
       <div class="mk-opt"><h3>How the words look</h3>${mkSeg('words', MK_WORDS, ' mk-seg-eg')}
         <p class="mk-hint">This changes every word. To change one word only, tap it in step 3.</p></div>
-      <div class="mk-opt"><h3>Full stop and commas</h3>${mkSeg('endp', MK_END, ' mk-seg-eg')}</div>
+      <div class="mk-opt"><h3>Full stop, question mark and commas</h3>${mkSeg('endp', MK_END, ' mk-seg-eg')}</div>
     </section>
     <section class="mk-step">
       <h2><span class="mk-n">3</span>Check it</h2>
@@ -483,7 +483,7 @@ function buildMakePanel(){
     <section class="mk-step">
       <h2><span class="mk-n">4</span>Use it</h2>
       <div class="mk-use">
-        <button type="button" class="mk-big" id="mkShowBtn"><b>📺 Show on the board</b><span>Fills the screen. Each click shows the next block (coloured parts, commas, full stop), then the whole sentence.</span></button>
+        <button type="button" class="mk-big" id="mkShowBtn"><b>📺 Show on the board</b><span>Fills the screen. Each click shows the next block (coloured parts, commas, then the full stop or question mark), then the whole sentence.</span></button>
         <button type="button" class="mk-big" id="mkPrintBtn"><b>🖨️ Print or save as PDF</b><span>One sentence per strip on A4. To keep a copy, choose "Save as PDF" as the printer.</span></button>
         <button type="button" class="mk-big" id="mkSaveBtn"><b>💾 Save for later</b><span>Keeps it in Saved sentences on this device, to show in the lesson.</span></button>
       </div>
