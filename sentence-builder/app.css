@@ -341,7 +341,7 @@ button.wr-and{border:2px solid #c0392b;color:#c0392b;font-family:'Andika',sans-s
 .home-modes.more b{font-size:1.05rem}
 .topic-row{margin:4px 0 12px;align-items:center}
 .topic-row .topic-lab{font-weight:900;color:var(--muted);margin-right:4px}
-body.locked #mainNav,body.locked #teacherBtn{display:none}
+body.locked #mainNav,body.locked #teacherBtn,body.locked #teachLink{display:none}
 body.locked .brand{pointer-events:none}
 #lockNote a{color:inherit}
 

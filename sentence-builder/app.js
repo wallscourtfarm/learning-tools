@@ -9,7 +9,7 @@
  * Nothing about the child is stored; only teacher settings, on this device. Picture word
  * banks live in content.js; the sentence engine (parts, text, sense check) in engine.js.
  */
-const VERSION = '26.11.26a';
+const VERSION = '27.11.26a';
 
 const CAT = {
   who:      {label:'who',      icon:'who',      q:() => 'Who or what is in the picture?'},
@@ -2049,6 +2049,8 @@ document.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => navTo(b.d
 window.addEventListener('popstate', () => { $('#modal').hidden = true; routing = true; try { route(); } finally { routing = false; }
 fitHeader(); });
 $('#teacherBtn').onclick = () => navTo('teacher');
+// A device that has opened Teach on the board (the teacher's) keeps a button back to it here.
+try { if (localStorage.getItem('wfa_sb_teach_seen') === '1') $('#teachLink').hidden = false; } catch(e) {}
 const lockHome = location.pathname + location.search;   // where a locked child goes back to
 if (locked){
   document.body.classList.add('locked');

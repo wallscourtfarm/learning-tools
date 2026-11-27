@@ -782,7 +782,7 @@
   @media (max-width:640px){ #sbNav a{font-size:.88rem;padding:7px 9px} .sb-brand small,.sb-tool span{display:none} }
   .try-link{text-decoration:none;display:inline-flex;align-items:center;background:#fff7d6;border-color:#f2c94c !important}
 </style>
-<link rel="stylesheet" href="make.css?v=27.11.26d">
+<link rel="stylesheet" href="make.css?v=27.11.26e">
 </head>
 <body>
 
@@ -821,7 +821,7 @@
 </main>
 
 <footer>
-  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 27.11.26d
+  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 27.11.26e
 </footer>
 
 <div class="present-overlay" id="presentOverlay">
@@ -868,9 +868,9 @@
 </script>
 <script src="../lib/pptxgenjs.bundle.js"></script>
 <script src="../lib/wink-pos-tagger.bundle.js"></script>
-<script src="../structures.js?v=27.11.26d"></script>
-<script src="make.js?v=27.11.26d"></script>
-<script src="../tagger.js?v=27.11.26d"></script>
+<script src="../structures.js?v=27.11.26e"></script>
+<script src="make.js?v=27.11.26e"></script>
+<script src="../tagger.js?v=27.11.26e"></script>
 <script>
 /* ---------- Colour / type definitions ---------- */
 const TYPE = {
@@ -1880,6 +1880,9 @@ function selectYear(id){
 }
 
 selectMake();
+// so the pupil pages show a "📺 Teach on the board" button on this device (the way back from Home)
+// (not when a child's own sentence was sent here from Check my writing)
+try { if (!/^#present=/.test(location.hash)) localStorage.setItem('wfa_sb_teach_seen', '1'); } catch(e) {}
 
 /* ---------- Sentence Builder: "Show on the board" from the pupil side ---------- */
 (function(){
