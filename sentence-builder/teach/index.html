@@ -776,7 +776,7 @@
   @media (max-width:640px){ #sbNav a{font-size:.88rem;padding:7px 9px} .sb-brand small,.sb-tool span{display:none} }
   .try-link{text-decoration:none;display:inline-flex;align-items:center;background:#fff7d6;border-color:#f2c94c !important}
 </style>
-<link rel="stylesheet" href="make.css?v=26.11.26b">
+<link rel="stylesheet" href="make.css?v=27.11.26a">
 </head>
 <body>
 
@@ -803,7 +803,7 @@
 
 <main>
   <div class="about-box">
-    <strong>Sentence types by year:</strong> choose a year group. Each row is a sentence structure from the National Curriculum, in Jacobs Education's <em>Colour-Coded Sentence Progression</em> colours. Tap a coloured block to type your own word or phrase. <strong>🎬 Present</strong> shows it on the board one block at a time. To colour your own sentence, use <strong>✏️ Type a sentence</strong>.
+    <strong>Sentence types by year:</strong> choose a year group. Each row is a sentence structure from the National Curriculum, in Jacobs Education's <em>Colour-Coded Sentence Progression</em> colours. Tap a coloured block to type your own word or phrase. <strong>🎬 Present</strong> shows it on the board one block at a time. <strong>🖼️ Add pictures, sound boxes or print</strong> adds Widgit pictures, sound boxes or hidden words. To colour your own sentence, use <strong>✏️ Type a sentence</strong>.
   </div>
 
   <div class="key-strip">
@@ -815,7 +815,7 @@
 </main>
 
 <footer>
-  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 26.11.26b
+  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 27.11.26a
 </footer>
 
 <div class="present-overlay" id="presentOverlay">
@@ -862,9 +862,9 @@
 </script>
 <script src="../lib/pptxgenjs.bundle.js"></script>
 <script src="../lib/wink-pos-tagger.bundle.js"></script>
-<script src="../structures.js?v=26.11.26b"></script>
-<script src="make.js?v=26.11.26b"></script>
-<script src="../tagger.js?v=26.11.26b"></script>
+<script src="../structures.js?v=27.11.26a"></script>
+<script src="make.js?v=27.11.26a"></script>
+<script src="../tagger.js?v=27.11.26a"></script>
 <script>
 /* ---------- Colour / type definitions ---------- */
 const TYPE = {
@@ -1644,6 +1644,13 @@ function buildCard(structure, sIdx, yearId){
     openPresentMode(currentItems(), structure.title, ks);
   });
 
+  // Same help as Type a sentence (Widgit pictures, sound boxes, hidden words, comma and full stop blocks, print)
+  const helpBtn = document.createElement('button');
+  helpBtn.className = 'btn-small btn-help';
+  helpBtn.textContent = '🖼️ Add pictures, sound boxes or print';
+  helpBtn.title = 'Opens this sentence in Type a sentence, with these colours: add Widgit pictures, sound boxes or hidden words, then show, print or save it';
+  helpBtn.addEventListener('click', ()=> mkFromYear(currentItems(), yearId, structure.title));
+
   // Sentence Builder link: open Free build with this structure as the pupils' target
   const tryBtn = document.createElement('a');
   tryBtn.className = 'btn-small try-link';
@@ -1654,6 +1661,7 @@ function buildCard(structure, sIdx, yearId){
   actions.appendChild(toggleBtn);
   actions.appendChild(resetBtn);
   actions.appendChild(presentBtn);
+  actions.appendChild(helpBtn);
   actions.appendChild(tryBtn);
   actions.appendChild(exportBtn);
   card.appendChild(actions);

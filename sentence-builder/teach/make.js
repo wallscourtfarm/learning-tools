@@ -24,14 +24,15 @@ const MK_WORDS = {
   boxes: {label:'Empty sound boxes',  eg:'<span class="eg-f"><i></i><i></i><i></i></span>', sub:'The child writes the sounds.'},
   line:  {label:'Hidden words', one:'Hidden: a line', eg:'<span class="eg-l"></span>', sub:'A line for the child to write on.'},
 };
-// The full stop (or ? !) at the end is its own block: children decide where it goes and whether the
-// sentence is finished (Innes 26.11.26). 'child' leaves it off the screen and the paper; on the board the
-// last click (the whole sentence) shows it, so the class can check.
+// The full stop (or ? !) at the end and each comma between parts are blocks of their own: children decide
+// where they go and whether the sentence is finished (Innes 26.11.26, commas 27.11.26). 'child' leaves them
+// off the screen and the paper; on the board the last click (the whole sentence) shows them, so the class can check.
 const MK_END = {
-  show:  {label:'Show it', eg:'<span class="eg-stop"></span>', sub:'Its own block after the last coloured part.'},
-  child: {label:'Leave it for the child', eg:'<span class="eg-q">?</span>', sub:'Not shown. The whole sentence at the end of the board shows it.'},
+  show:  {label:'Show them', eg:'<span class="eg-q">,</span>&nbsp;<span class="eg-stop"></span>', sub:'Each has its own block between the coloured parts.'},
+  child: {label:'Leave them for the child', eg:'<span class="eg-q">?</span>', sub:'Not shown. The whole sentence at the end of the board shows them.'},
 };
-const MK_END_NAME = {'.':'full stop', '?':'question mark', '!':'exclamation mark'};
+const MK_END_NAME = {'.':'full stop', '?':'question mark', '!':'exclamation mark', ',':'comma', ';':'semicolon', ':':'colon'};
+const MK_MARK_ICON = {'.':'fullstop.png', ',':'comma.png'};
 const MK_PICS = {
   off:  {label:'No pictures'},
   part: {label:'One for each coloured part'},
@@ -157,7 +158,9 @@ function mkEd(line){ return mk.edits[line] || (mk.edits[line] = {cats:{}, w:{}})
 function mkSnapshot(line){
   const ed = mkEd(line);
   let items = [];
-  try { items = autoTagSentence(line); } catch(e) { items = [{cat:'lit', text: line}]; }
+  // a sentence from "Sentence types by year" keeps that card's colours; anything typed is coloured here
+  if (Array.isArray(ed.items) && ed.items.map(i => i.text).join(' ') === line) items = ed.items;
+  else try { items = autoTagSentence(line); } catch(e) { items = [{cat:'lit', text: line}]; }
   let ord = 0;
   const parts = items.map((it, ci) => {
     const words = [];
@@ -204,26 +207,39 @@ function mkSnapshot(line){
   const lastW = parts.length ? parts[parts.length - 1].words.slice(-1)[0] : null;
   const em = lastW && lastW.punct.match(/[.!?]+$/);
   if (em) { end = em[0]; lastW.punct = lastW.punct.slice(0, -end.length); }
+  // a comma (; :) at the end of a coloured part becomes its own block after it
+  parts.forEach(p => {
+    const w = p.words[p.words.length - 1], cm = w.punct.match(/[,;:]+$/);
+    p.after = cm ? cm[0] : '';
+    if (cm) w.punct = w.punct.slice(0, -cm[0].length);
+  });
+  const show = mk.endp !== 'child';
   return {line, ed: JSON.parse(JSON.stringify(ed)), ks: mk.ks, anyPic: on && parts.some(p => p.words.some(w => w.showPic)), parts,
-    end, endShow: !!end && mk.endp !== 'child'};
+    end, endShow: !!end && show, markShow: show};
 }
 // The sentence as text, with hidden words left blank (the board's last line, saved list).
 function mkPlainText(snap){
   return snap.parts.map(p => p.words.map(w =>
-    (w.mode === 'boxes' || w.mode === 'line' ? '_'.repeat(Math.max(3, w.text.length)) : w.text) + w.punct).join(' ')).join(' ') + (snap.end || '');
+    (w.mode === 'boxes' || w.mode === 'line' ? '_'.repeat(Math.max(3, w.text.length)) : w.text) + w.punct).join(' ') + (p.after || '')).join(' ') + (snap.end || '');
 }
-// One item per block shown (the board counts its clicks from these), the full stop block included.
+// One item per block shown (the board counts its clicks from these), comma and full stop blocks included.
 function mkItems(snap){
-  const items = snap.parts.map(p => ({cat: p.cat, text: p.words.map(w => w.text + w.punct).join(' ')}));
+  const items = [];
+  snap.parts.forEach(p => {
+    items.push({cat: p.cat, text: p.words.map(w => w.text + w.punct).join(' ')});
+    if (p.after && snap.markShow) items.push({cat: 'lit', text: p.after});
+  });
   if (snap.endShow) items.push({cat: 'lit', text: snap.end});
   return items;
 }
-// The end block: the full stop's own icon, its name and a big dot (or ? !).
-function mkEndHTML(snap){
-  const e = snap.end, name = MK_END_NAME[e] || MK_END_NAME[e.slice(-1)] || 'end';
-  return `<div class="mk-part mk-end"><div class="mk-role">${e === '.' ? '<img src="../icons/fullstop.png" alt="">' : ''}<span>${name}</span></div>` +
+// A punctuation block: its own icon, its name and the mark drawn big (a dot for a full stop).
+function mkMarkHTML(e){
+  const name = MK_END_NAME[e] || MK_END_NAME[e.slice(-1)] || '', icon = MK_MARK_ICON[e];
+  return `<div class="mk-part mk-end${e === ',' ? ' mk-comma' : ''}"><div class="mk-role">${icon ? `<img src="../icons/${icon}" alt="">` : ''}<span>${name || '&nbsp;'}</span></div>` +
     `<div class="mk-words">${e === '.' ? '<span class="mk-bigdot"></span>' : `<span class="mk-endch">${mkEsc(e)}</span>`}</div></div>`;
 }
+const mkEndHTML = snap => mkMarkHTML(snap.end);
+const mkAfterHTML = (p, snap) => p.after && snap.markShow ? `<div class="mk-unit">${mkMarkHTML(p.after)}</div>` : '';
 
 /* ---------------- drawing a sentence (step 3, the board and the printout share this) ---------------- */
 function mkWordBody(w){
@@ -255,7 +271,7 @@ function mkPartHTML(p, ci, snap, edit){
   return h;
 }
 function mkSentenceHTML(snap, edit){
-  return `<div class="mk-sentence${snap.anyPic ? ' mk-has-pic' : ''}">` + snap.parts.map((p, ci) => `<div class="mk-unit">${mkPartHTML(p, ci, snap, edit)}</div>`).join('') +
+  return `<div class="mk-sentence${snap.anyPic ? ' mk-has-pic' : ''}">` + snap.parts.map((p, ci) => `<div class="mk-unit">${mkPartHTML(p, ci, snap, edit)}</div>` + mkAfterHTML(p, snap)).join('') +
     (snap.endShow ? `<div class="mk-unit">${mkEndHTML(snap)}</div>` : '') + `</div>`;
 }
 function mkMissing(snap){
@@ -271,6 +287,12 @@ function mkPresentFill(snap, row, sentenceEl){
     token.className = 'present-token mk-board';
     token.innerHTML = `<div class="mk-sentence${snap.anyPic ? ' mk-has-pic' : ''}"><div class="mk-unit">${mkPartHTML(p, ci, snap, false)}</div></div>`;
     row.appendChild(token);
+    if (p.after && snap.markShow) {
+      const t = document.createElement('div');
+      t.className = 'present-token mk-board';
+      t.innerHTML = `<div class="mk-sentence">${mkAfterHTML(p, snap)}</div>`;
+      row.appendChild(t);
+    }
   });
   if (snap.endShow) {
     const token = document.createElement('div');
@@ -440,6 +462,7 @@ function buildMakePanel(){
   const wrap = document.createElement('div');
   wrap.className = 'mk';
   wrap.innerHTML = `
+    <div id="mkFrom"></div>
     <section class="mk-step">
       <h2><span class="mk-n">1</span>Type your sentence</h2>
       <textarea id="mkText" rows="2" placeholder="e.g. The hungry fox crept quietly into the dark tunnel.">${mkEsc(mk.text)}</textarea>
@@ -450,7 +473,7 @@ function buildMakePanel(){
       <div class="mk-opt"><h3>Widgit pictures</h3>${mkSeg('pics', MK_PICS)}<div id="mkPicStatus"></div></div>
       <div class="mk-opt"><h3>How the words look</h3>${mkSeg('words', MK_WORDS, ' mk-seg-eg')}
         <p class="mk-hint">This changes every word. To change one word only, tap it in step 3.</p></div>
-      <div class="mk-opt"><h3>Full stop at the end</h3>${mkSeg('endp', MK_END, ' mk-seg-eg')}</div>
+      <div class="mk-opt"><h3>Full stop and commas</h3>${mkSeg('endp', MK_END, ' mk-seg-eg')}</div>
     </section>
     <section class="mk-step">
       <h2><span class="mk-n">3</span>Check it</h2>
@@ -460,7 +483,7 @@ function buildMakePanel(){
     <section class="mk-step">
       <h2><span class="mk-n">4</span>Use it</h2>
       <div class="mk-use">
-        <button type="button" class="mk-big" id="mkShowBtn"><b>📺 Show on the board</b><span>Fills the screen. Each click shows the next coloured part, then the full stop, then the whole sentence.</span></button>
+        <button type="button" class="mk-big" id="mkShowBtn"><b>📺 Show on the board</b><span>Fills the screen. Each click shows the next block (coloured parts, commas, full stop), then the whole sentence.</span></button>
         <button type="button" class="mk-big" id="mkPrintBtn"><b>🖨️ Print or save as PDF</b><span>One sentence per strip on A4. To keep a copy, choose "Save as PDF" as the printer.</span></button>
         <button type="button" class="mk-big" id="mkSaveBtn"><b>💾 Save for later</b><span>Keeps it in Saved sentences on this device, to show in the lesson.</span></button>
       </div>
@@ -499,7 +522,7 @@ function buildMakePanel(){
   };
   wrap.querySelector('#mkPptBtn').onclick = () => {
     if (!mkSnaps.length) return;
-    const items = mkSnaps.flatMap(s => { const it = s.parts.map(p => ({cat: p.cat, text: p.words.map(w => w.text + w.punct).join(' ')}));
+    const items = mkSnaps.flatMap(s => { const it = s.parts.map(p => ({cat: p.cat, text: p.words.map(w => w.text + w.punct).join(' ') + (p.after || '')}));
       if (it.length) it[it.length - 1].text += s.end || ''; return it; });
     exportItemsToPptx(items, {title: mk.title || '', fileName: slugify(mkSnaps.map(s => s.line).join(' ')), ks: mk.ks || null, yearId: null, autoPunct: false});
   };
@@ -520,8 +543,32 @@ function buildMakePanel(){
   });
   return wrap;
 }
+// A sentence brought from a "Sentence types by year" card: keeps the card's colours exactly.
+function mkFromYear(items, yearId, title){
+  const its = items.map(i => ({cat: i.cat, text: String(i.text || '').trim()})).filter(i => i.text);
+  if (!its.length) return;
+  its[0].text = its[0].text.charAt(0).toUpperCase() + its[0].text.slice(1);
+  if (!/[.!?]$/.test(its[its.length - 1].text)) its[its.length - 1].text += '.';
+  const line = its.map(i => i.text).join(' ');
+  if (mk.text.trim() && mk.text.trim() !== line &&
+      !confirm('This puts the sentence into "Type a sentence" instead of what is there now. Carry on?')) return;
+  mk.text = line; mk.edits = {}; mk.edits[line] = {cats:{}, w:{}, items: its};
+  mk.editingId = null;
+  const ks = ksForYear(yearId); if (ks === 'ks1' || ks === 'ks2') mk.ks = ks;
+  mk.from = {line, yearId, title};
+  mkStore(); selectMake();
+}
+function mkFromHTML(){
+  const f = mk.from;
+  if (!f || mkLines()[0] !== f.line) return '';
+  const y = (typeof YEARS !== 'undefined' && YEARS.find(x => x.id === f.yearId)) || {label: 'the year group'};
+  return `<div class="mk-from"><p><b>${mkEsc(y.label)}: ${mkEsc(f.title)}.</b> Your sentence is below with its colours. Add pictures, sound boxes or hidden words in step 2, then show, print or save it in step 4.</p>` +
+    `<button type="button" class="mk-btn ghost" data-back="${mkEsc(f.yearId)}">← Back to ${mkEsc(y.label)}</button></div>`;
+}
 function mkRender(){
   const prev = document.getElementById('mkPreview'); if (!prev) return;
+  const from = document.getElementById('mkFrom');
+  if (from) { from.innerHTML = mkFromHTML(); const b = from.querySelector('[data-back]'); if (b) b.onclick = () => selectYear(b.dataset.back); }
   if (mk.pics !== 'off' && SYM.state === 'idle') symLoad();
   mkSnaps = mkLines().map(mkSnapshot);
   // picture status, under "Widgit pictures"

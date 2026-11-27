@@ -146,3 +146,10 @@ button.mk-word:hover,button.mk-word:focus-visible{border-color:currentColor;back
 .mk-endch{font-size:2.2em;font-weight:900;line-height:1}
 .eg-stop{display:inline-block;width:14px;height:14px;border-radius:50%;background:currentColor}
 .eg-q{font-size:1.3rem;font-weight:900}
+/* a comma's own block (27.11.26a): narrower than the full stop */
+.mk-comma{min-width:2.4em}
+.mk-comma .mk-endch{font-size:3.6em;line-height:.5;margin-top:-.2em}
+/* a sentence brought from "Sentence types by year" */
+.mk-from{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:#e8f4fb;border:2px solid #1798d3;border-radius:14px;padding:12px 14px;margin:0 0 14px}
+.mk-from p{margin:0;flex:1 1 260px;line-height:1.4}
+.btn-small.btn-help{background:#1798d3;color:#fff;border-color:#1798d3}
