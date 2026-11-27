@@ -392,13 +392,17 @@ function mkPop(html, anchor){
   p.innerHTML = html; p.hidden = false;
   const small = innerWidth < 640;
   p.classList.toggle('mk-sheet', small);
+  // Fit it in the window: below the word if there is room, else above it (growing upwards as the
+  // pictures load), else the whole height. It scrolls inside when it holds more than fits.
+  p.style.left = p.style.top = p.style.bottom = p.style.maxHeight = '';
   if (!small && anchor) {
     const r = anchor.getBoundingClientRect();
-    const x = Math.min(Math.max(12, r.left), innerWidth - p.offsetWidth - 12);
-    let y = r.bottom + 8;
-    if (y + p.offsetHeight > innerHeight - 12) y = Math.max(12, r.top - p.offsetHeight - 8);
-    p.style.left = x + 'px'; p.style.top = y + 'px';
-  } else { p.style.left = ''; p.style.top = ''; }
+    p.style.left = Math.min(Math.max(12, r.left), innerWidth - p.offsetWidth - 12) + 'px';
+    const below = innerHeight - r.bottom - 20, above = r.top - 20;
+    if (below >= 320 || (below >= above && below >= 220)) { p.style.top = (r.bottom + 8) + 'px'; p.style.maxHeight = below + 'px'; }
+    else if (above >= 220) { p.style.top = 'auto'; p.style.bottom = (innerHeight - r.top + 8) + 'px'; p.style.maxHeight = above + 'px'; }
+    else { p.style.top = '12px'; p.style.maxHeight = (innerHeight - 24) + 'px'; }
+  }
   return p;
 }
 function mkClosePop(){ const p = document.getElementById('mkPop'); if (p) p.hidden = true; }

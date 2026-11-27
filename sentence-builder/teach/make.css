@@ -86,12 +86,12 @@ button.mk-word:hover,button.mk-word:focus-visible{border-color:currentColor;back
 .mk-link{font:inherit;font-weight:800;color:#0f6fa0;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
 
 /* pop-ups */
-#mkPop{position:fixed;z-index:2000;background:#fff;border:2px solid #cfe3ee;border-radius:14px;padding:14px;box-shadow:0 10px 32px rgba(0,0,0,.2);width:min(400px,calc(100vw - 24px));max-height:78vh;overflow:auto;box-sizing:border-box}
+#mkPop{position:fixed;z-index:2000;background:#fff;border:2px solid #cfe3ee;border-radius:14px;padding:14px;box-shadow:0 10px 32px rgba(0,0,0,.2);width:min(400px,calc(100vw - 24px));max-height:78vh;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box}
 #mkPop.mk-sheet{left:0 !important;right:0;bottom:0;top:auto !important;width:100%;border-radius:16px 16px 0 0;max-height:82vh}
 #mkPop h3{margin:0 0 10px;font-size:1.1rem}
 .mk-pop-label{display:block;margin:12px 0 6px;font-weight:800;font-size:.9rem;color:var(--dark)}
 .mk-pop-note{margin:8px 0 0;font-size:.88rem;color:var(--muted)}
-.mk-pop-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.mk-pop-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;position:sticky;bottom:-14px;background:#fff;padding:10px 0 14px;margin-bottom:-14px;border-top:1px solid #e3edf3}
 .mk-roles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .mk-roles button{display:flex;align-items:center;gap:6px;min-height:44px;padding:6px 8px;border:0;border-radius:10px;font:inherit;font-weight:800;font-size:.88rem;cursor:pointer;text-align:left}
 .mk-roles button img{height:20px;width:auto}
