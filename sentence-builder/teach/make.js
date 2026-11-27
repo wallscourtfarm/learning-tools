@@ -214,7 +214,7 @@ function mkSnapshot(line){
     if (cm) w.punct = w.punct.slice(0, -cm[0].length);
   });
   const show = mk.endp !== 'child';
-  return {line, ed: JSON.parse(JSON.stringify(ed)), ks: mk.ks, anyPic: on && parts.some(p => p.words.some(w => w.showPic)), parts,
+  return {line, ed: JSON.parse(JSON.stringify(ed)), ks: mk.ks, opts: {pics: mk.pics, words: mk.words, endp: mk.endp}, anyPic: on && parts.some(p => p.words.some(w => w.showPic)), parts,
     end, endShow: !!end && show, markShow: show};
 }
 // The sentence as text, with hidden words left blank (the board's last line, saved list).
@@ -329,25 +329,59 @@ function mkPrint(snaps){
 }
 
 /* ---------------- save for later ---------------- */
-// Returns true when it replaced the saved sentence opened with "Change".
+// mk.editing = [{line, id}]: the saved sentences now in the box (opened with Change or Print, or saved from here).
+// Saving replaces those entries instead of adding copies. A line whose text was changed is matched to a
+// leftover entry when it is mostly the same words. Returns how many were replaced.
 function mkSaveForLater(snaps){
-  const i = mk.editingId ? sentenceBank.findIndex(e => e.id === mk.editingId) : -1;
-  mk.editingId = null; mkStore();
-  if (i >= 0 && snaps.length === 1) {
-    sentenceBank[i] = Object.assign({}, sentenceBank[i], {items: mkItems(snaps[0]), ks: snaps[0].ks, rich: snaps[0]});
-    saveSentenceBank(); return true;
-  }
-  snaps.forEach(s => sentenceBank.push({id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), items: mkItems(s), yearId: null, ks: s.ks, rich: s}));
-  saveSentenceBank(); return false;
+  const ed = (mk.editing || []).filter(x => sentenceBank.some(e => e.id === x.id));
+  const used = new Set(), ids = snaps.map(s => { const m = ed.find(x => x.line === s.line && !used.has(x.id)); if (m) used.add(m.id); return m ? m.id : null; });
+  // a changed line replaces a leftover entry only if it is mostly the same words (a typo fixed, a word
+  // swapped), never a different sentence typed over it
+  const words = t => new Set(symNorm(t).split(' ').filter(Boolean));
+  const alike = (a, b) => { const A = words(a), B = words(b); let n = 0; A.forEach(w => { if (B.has(w)) n++; }); return n / Math.max(A.size, B.size, 1) >= 0.5; };
+  ids.forEach((id, k) => {
+    if (id) return;
+    const m = ed.find(x => !used.has(x.id) && alike(x.line, snaps[k].line));
+    if (m) { used.add(m.id); ids[k] = m.id; }
+  });
+  let replaced = 0;
+  mk.editing = snaps.map((s, k) => {
+    const entry = {items: mkItems(s), ks: s.ks, rich: s};
+    const i = ids[k] ? sentenceBank.findIndex(e => e.id === ids[k]) : -1;
+    if (i >= 0) { sentenceBank[i] = Object.assign({}, sentenceBank[i], entry); replaced++; return {line: s.line, id: ids[k]}; }
+    const id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    sentenceBank.push(Object.assign({id, yearId: null}, entry));
+    return {line: s.line, id};
+  });
+  saveSentenceBank(); mkStore();
+  return replaced;
 }
-// "Open" on a saved sentence: back into step 1 with its colours, pictures and boxes.
-function mkOpenSaved(entry){
-  const s = entry.rich;
-  if (mk.text.trim() && mk.text.trim() !== s.line &&
-      !confirm('This puts the saved sentence into "Type a sentence" instead of what is there now. Carry on?')) return;
-  mk.editingId = entry.id;
-  mk.text = s.line; mk.edits = {}; mk.edits[s.line] = s.ed || {cats:{}, w:{}};
-  if (s.ks !== undefined) mk.ks = s.ks;
+// A saved sentence as a line of text and its colours/word settings. Older entries (no rich) keep their colours.
+function mkSavedLine(entry){
+  if (entry.rich) return {line: entry.rich.line, ed: entry.rich.ed || {cats:{}, w:{}}};
+  const its = (entry.items || []).map(i => ({cat: i.cat, text: String(i.text || '').trim()})).filter(i => i.text);
+  const line = its.map(i => i.text).join(' ');
+  return {line, ed: {cats:{}, w:{}, items: its}};
+}
+// "Change" (one) or "Print or change the ticked ones" (several): back into Type a sentence, colours,
+// pictures and boxes kept, with the options they were saved with.
+function mkOpenSaved(entries){
+  if (!Array.isArray(entries)) entries = [entries];
+  const got = entries.map(e => Object.assign({id: e.id}, mkSavedLine(e))).filter(x => x.line);
+  if (!got.length) return;
+  const text = got.map(x => x.line).join('\n');
+  if (mk.text.trim() && mk.text.trim() !== text &&
+      !confirm('This puts the saved sentence' + (got.length > 1 ? 's' : '') + ' into "Type a sentence" instead of what is there now. Carry on?')) return;
+  mk.text = text; mk.edits = {};
+  got.forEach(x => { mk.edits[x.line] = JSON.parse(JSON.stringify(x.ed)); });
+  mk.editing = got.map(x => ({line: x.line, id: x.id}));
+  const r = (entries.find(e => e.rich) || {}).rich;
+  if (r) {
+    if (r.opts) ['pics', 'words', 'endp'].forEach(k => { if (r.opts[k]) mk[k] = r.opts[k]; });
+    else if (r.anyPic && mk.pics === 'off') mk.pics = 'part';
+    if (r.ks !== undefined) mk.ks = r.ks;
+  }
+  mk.from = {kind: 'saved', text, n: got.length};
   mkStore(); selectMake();
 }
 
@@ -498,7 +532,7 @@ function buildMakePanel(){
     </section>`;
   const ta = wrap.querySelector('#mkText');
   let t;
-  ta.addEventListener('input', () => { mk.text = ta.value; if (!ta.value.trim()) mk.editingId = null; clearTimeout(t); t = setTimeout(() => { mkStore(); mkRender(); }, 250); });
+  ta.addEventListener('input', () => { mk.text = ta.value; if (!ta.value.trim()) mk.editing = []; clearTimeout(t); t = setTimeout(() => { mkStore(); mkRender(); }, 250); });
   wrap.querySelectorAll('.mk-seg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('[data-v]'); if (!b) return;
     mk[seg.dataset.k] = b.dataset.v;
@@ -553,13 +587,19 @@ function mkFromYear(items, yearId, title){
   if (mk.text.trim() && mk.text.trim() !== line &&
       !confirm('This puts the sentence into "Type a sentence" instead of what is there now. Carry on?')) return;
   mk.text = line; mk.edits = {}; mk.edits[line] = {cats:{}, w:{}, items: its};
-  mk.editingId = null;
+  mk.editing = [];
   const ks = ksForYear(yearId); if (ks === 'ks1' || ks === 'ks2') mk.ks = ks;
   mk.from = {line, yearId, title};
   mkStore(); selectMake();
 }
 function mkFromHTML(){
   const f = mk.from;
+  if (f && f.kind === 'saved') {
+    if (mkLines().join('\n') !== f.text && !(mk.editing || []).length) return '';
+    const n = mkLines().length;
+    return `<div class="mk-from"><p><b>${n > 1 ? 'Your ' + n + ' saved sentences are' : 'Your saved sentence is'} below.</b> Choose pictures, sound boxes, hidden words and punctuation in step 2, then 🖨️ Print or save as PDF in step 4. 💾 Save for later keeps your changes to ${n > 1 ? 'them' : 'it'}.</p>` +
+      `<button type="button" class="mk-btn ghost" data-bank>← Back to Saved sentences</button></div>`;
+  }
   if (!f || mkLines()[0] !== f.line) return '';
   const y = (typeof YEARS !== 'undefined' && YEARS.find(x => x.id === f.yearId)) || {label: 'the year group'};
   return `<div class="mk-from"><p><b>${mkEsc(y.label)}: ${mkEsc(f.title)}.</b> Your sentence is below with its colours. Add pictures, sound boxes or hidden words in step 2, then show, print or save it in step 4.</p>` +
@@ -568,7 +608,8 @@ function mkFromHTML(){
 function mkRender(){
   const prev = document.getElementById('mkPreview'); if (!prev) return;
   const from = document.getElementById('mkFrom');
-  if (from) { from.innerHTML = mkFromHTML(); const b = from.querySelector('[data-back]'); if (b) b.onclick = () => selectYear(b.dataset.back); }
+  if (from) { from.innerHTML = mkFromHTML(); const b = from.querySelector('[data-back]'); if (b) b.onclick = () => selectYear(b.dataset.back);
+    const k = from.querySelector('[data-bank]'); if (k) k.onclick = () => selectBank(); }
   if (mk.pics !== 'off' && SYM.state === 'idle') symLoad();
   mkSnaps = mkLines().map(mkSnapshot);
   // picture status, under "Widgit pictures"

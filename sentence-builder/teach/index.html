@@ -548,6 +548,12 @@
   }
   .bank-item-actions{ display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0; }
   .bank-item-actions .btn-small{ padding:5px 8px; }
+  .bank-bar{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 12px; }
+  .bank-bar .mk-big b{ font-size:1rem; }
+  .bank-all{ grid-column:1/-1; display:flex; align-items:center; gap:8px; font-weight:700; font-size:.9rem; cursor:pointer; }
+  .bank-all input, .bank-tick input{ width:22px; height:22px; accent-color:var(--brand); cursor:pointer; }
+  .bank-tick{ display:flex; align-items:center; padding:4px; cursor:pointer; flex-shrink:0; }
+  @media (max-width:640px){ .bank-bar{ grid-template-columns:1fr; } }
 
   footer{
     text-align:center;
@@ -776,7 +782,7 @@
   @media (max-width:640px){ #sbNav a{font-size:.88rem;padding:7px 9px} .sb-brand small,.sb-tool span{display:none} }
   .try-link{text-decoration:none;display:inline-flex;align-items:center;background:#fff7d6;border-color:#f2c94c !important}
 </style>
-<link rel="stylesheet" href="make.css?v=27.11.26b">
+<link rel="stylesheet" href="make.css?v=27.11.26c">
 </head>
 <body>
 
@@ -815,7 +821,7 @@
 </main>
 
 <footer>
-  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 27.11.26b
+  Sentence Builder · Teach · based on Jacobs Education's Colour-Coded Sentence Progression · Version 27.11.26c
 </footer>
 
 <div class="present-overlay" id="presentOverlay">
@@ -862,9 +868,9 @@
 </script>
 <script src="../lib/pptxgenjs.bundle.js"></script>
 <script src="../lib/wink-pos-tagger.bundle.js"></script>
-<script src="../structures.js?v=27.11.26b"></script>
-<script src="make.js?v=27.11.26b"></script>
-<script src="../tagger.js?v=27.11.26b"></script>
+<script src="../structures.js?v=27.11.26c"></script>
+<script src="make.js?v=27.11.26c"></script>
+<script src="../tagger.js?v=27.11.26c"></script>
 <script>
 /* ---------- Colour / type definitions ---------- */
 const TYPE = {
@@ -1686,7 +1692,7 @@ function buildBankPanel(){
   p.style.fontSize = '0.85rem';
   p.style.color = 'var(--muted)';
   p.style.margin = '0 0 10px';
-  p.textContent = "Sentences you save with \"💾 Save for later\" in ✏️ Type a sentence are kept here, on this device. Show them all on the board one after another with the button below.";
+  p.textContent = "Sentences you save with \"💾 Save for later\" in ✏️ Type a sentence are kept here, on this device. Tick the ones you want, then show them on the board or print them.";
   wrap.appendChild(p);
 
   if(!sentenceBank.length){
@@ -1697,14 +1703,33 @@ function buildBankPanel(){
     return wrap;
   }
 
-  const presentAllBtn = document.createElement('button');
-  presentAllBtn.className = 'btn-main';
-  presentAllBtn.textContent = `📺 Show them all on the board (${sentenceBank.length})`;
-  presentAllBtn.style.marginBottom = '14px';
-  presentAllBtn.addEventListener('click', ()=>{
-    openPresentPlaylist(sentenceBank.map((e,i)=>({ items:e.items, title:`Saved sentence ${i+1}`, ks: e.rich ? e.ks : ksForYear(e.yearId), autoPunct:false, rich:e.rich })));
+  // Ticked sentences (all, until the teacher unticks some): the two big buttons use these.
+  const ticked = () => sentenceBank.filter(e => !bankUnticked.has(e.id));
+  const bar = document.createElement('div');
+  bar.className = 'bank-bar';
+  bar.innerHTML = `<button type="button" class="mk-big" id="bankShow"><b></b><span>Fills the screen, one sentence after another.</span></button>
+    <button type="button" class="mk-big" id="bankPrint"><b></b><span>Opens them together in ✏️ Type a sentence. Choose pictures, sound boxes, hidden words and punctuation there, then print or save as PDF.</span></button>
+    <label class="bank-all"><input type="checkbox" id="bankAll"> Tick all</label>`;
+  wrap.appendChild(bar);
+  const showBtn = bar.querySelector('#bankShow'), printBtn = bar.querySelector('#bankPrint'), allBox = bar.querySelector('#bankAll');
+  function updateBar(){
+    const n = ticked().length;
+    showBtn.querySelector('b').textContent = `📺 Show the ticked ones on the board (${n})`;
+    printBtn.querySelector('b').textContent = `🖨️ Print or change the ticked ones (${n})`;
+    showBtn.disabled = printBtn.disabled = !n;
+    allBox.checked = n === sentenceBank.length;
+    allBox.indeterminate = n > 0 && n < sentenceBank.length;
+  }
+  showBtn.addEventListener('click', ()=>{
+    const list = ticked(); if(!list.length) return;
+    openPresentPlaylist(list.map(e=>({ items:e.items, title:`Saved sentence ${sentenceBank.indexOf(e)+1}`, ks: e.rich ? e.ks : ksForYear(e.yearId), autoPunct:false, rich:e.rich })));
   });
-  wrap.appendChild(presentAllBtn);
+  printBtn.addEventListener('click', ()=>{ const list = ticked(); if(list.length) mkOpenSaved(list); });
+  allBox.addEventListener('change', ()=>{
+    if(allBox.checked) bankUnticked.clear(); else sentenceBank.forEach(e => bankUnticked.add(e.id));
+    wrap.querySelectorAll('.bank-tick input').forEach(c => { c.checked = allBox.checked; });
+    updateBar();
+  });
 
   const list = document.createElement('div');
   list.className = 'bank-list';
@@ -1712,12 +1737,27 @@ function buildBankPanel(){
   sentenceBank.forEach((entry, idx)=>{
     if(entry.rich){
       const r = entry.rich;
-      const pills = r.parts.map(p => ({cat:p.cat, text:p.words.map(w => ((w.mode==='boxes'||w.mode==='line') ? '_'.repeat(Math.max(3,w.text.length)) : w.text) + w.punct).join(' ')}));
+      const pills = [];
+      r.parts.forEach(p => {
+        pills.push({cat:p.cat, text:p.words.map(w => ((w.mode==='boxes'||w.mode==='line') ? '_'.repeat(Math.max(3,w.text.length)) : w.text) + w.punct).join(' ')});
+        if (p.after && r.markShow) pills.push({cat:'lit', text:p.after});
+      });
       if (r.endShow) pills.push({cat:'lit', text:r.end});
       entry = Object.assign({}, entry, { items: pills });
     }
     const row = document.createElement('div');
     row.className = 'bank-item';
+
+    const tick = document.createElement('label');
+    tick.className = 'bank-tick';
+    tick.title = 'Tick to show or print this one';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !bankUnticked.has(entry.id);
+    cb.setAttribute('aria-label', 'Tick saved sentence ' + (idx+1));
+    cb.addEventListener('change', ()=>{ if(cb.checked) bankUnticked.delete(entry.id); else bankUnticked.add(entry.id); updateBar(); });
+    tick.appendChild(cb);
+    row.appendChild(tick);
 
     const yearInfo = YEARS.find(y=>y.id===entry.yearId);
     if(yearInfo){
@@ -1731,7 +1771,7 @@ function buildBankPanel(){
     preview.className = 'bank-item-preview';
     entry.items.forEach(it=>{
       const def = TYPE[it.cat] || TYPE.lit;
-      const hasComma = /,$/.test(it.text);
+      const hasComma = /,$/.test(it.text) && it.text.length > 1;
       const displayText = hasComma ? it.text.slice(0, -1) : it.text;
       const pill = document.createElement('span');
       pill.className = 'bank-pill';
@@ -1771,12 +1811,12 @@ function buildBankPanel(){
     });
     actions.appendChild(presentBtn);
 
-    if(entry.rich){
+    {
       const openBtn = document.createElement('button');
       openBtn.className = 'btn-small';
       openBtn.textContent = '✏️ Change';
       openBtn.title = 'Open it in Type a sentence to change it';
-      openBtn.addEventListener('click', ()=> mkOpenSaved(entry));
+      openBtn.addEventListener('click', ()=> mkOpenSaved(sentenceBank.find(e => e.id === entry.id)));
       actions.appendChild(openBtn);
     }
 
@@ -1796,8 +1836,10 @@ function buildBankPanel(){
   });
 
   wrap.appendChild(list);
+  updateBar();
   return wrap;
 }
+let bankUnticked = new Set();
 
 function selectBank(){
   setTeachTab('bank');
